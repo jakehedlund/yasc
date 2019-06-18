@@ -33,19 +33,21 @@
             this.lblStatus = new System.Windows.Forms.Label();
             this.rbtnLocal = new System.Windows.Forms.RadioButton();
             this.gbxSrc = new System.Windows.Forms.GroupBox();
+            this.btnDump = new System.Windows.Forms.Button();
             this.cmbUri = new System.Windows.Forms.ComboBox();
+            this.nudTestSrc = new System.Windows.Forms.NumericUpDown();
             this.nudLocalIdx = new System.Windows.Forms.NumericUpDown();
             this.rbtnRtsp = new System.Windows.Forms.RadioButton();
+            this.rbtnTest = new System.Windows.Forms.RadioButton();
             this.gbxControl = new System.Windows.Forms.GroupBox();
             this.btnBrowse = new System.Windows.Forms.Button();
             this.btnRecord = new System.Windows.Forms.Button();
+            this.gbxOverlay = new System.Windows.Forms.GroupBox();
             this.yascControl1 = new YetAnotherStreamingContol.YascControl();
-            this.rbtnTest = new System.Windows.Forms.RadioButton();
-            this.nudTestSrc = new System.Windows.Forms.NumericUpDown();
             this.gbxSrc.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
             this.gbxControl.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             this.SuspendLayout();
             // 
             // btnStart
@@ -85,6 +87,7 @@
             this.rbtnLocal.Name = "rbtnLocal";
             this.rbtnLocal.Size = new System.Drawing.Size(57, 17);
             this.rbtnLocal.TabIndex = 4;
+            this.rbtnLocal.TabStop = true;
             this.rbtnLocal.Text = "Local: ";
             this.rbtnLocal.UseVisualStyleBackColor = true;
             this.rbtnLocal.CheckedChanged += new System.EventHandler(this.rbtnLocal_CheckedChanged);
@@ -92,18 +95,29 @@
             // gbxSrc
             // 
             this.gbxSrc.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.gbxSrc.Controls.Add(this.btnDump);
             this.gbxSrc.Controls.Add(this.cmbUri);
             this.gbxSrc.Controls.Add(this.nudTestSrc);
             this.gbxSrc.Controls.Add(this.nudLocalIdx);
             this.gbxSrc.Controls.Add(this.rbtnRtsp);
             this.gbxSrc.Controls.Add(this.rbtnTest);
             this.gbxSrc.Controls.Add(this.rbtnLocal);
-            this.gbxSrc.Location = new System.Drawing.Point(12, 412);
+            this.gbxSrc.Location = new System.Drawing.Point(12, 409);
             this.gbxSrc.Name = "gbxSrc";
             this.gbxSrc.Size = new System.Drawing.Size(372, 94);
             this.gbxSrc.TabIndex = 5;
             this.gbxSrc.TabStop = false;
             this.gbxSrc.Text = "Source";
+            // 
+            // btnDump
+            // 
+            this.btnDump.Location = new System.Drawing.Point(291, 13);
+            this.btnDump.Name = "btnDump";
+            this.btnDump.Size = new System.Drawing.Size(75, 23);
+            this.btnDump.TabIndex = 8;
+            this.btnDump.Text = "Dump graph";
+            this.btnDump.UseVisualStyleBackColor = true;
+            this.btnDump.Click += new System.EventHandler(this.btnDump_Click);
             // 
             // cmbUri
             // 
@@ -114,6 +128,20 @@
             this.cmbUri.Size = new System.Drawing.Size(292, 21);
             this.cmbUri.TabIndex = 7;
             this.cmbUri.Text = "rtsp://192.168.0.250:554/cam0_0";
+            this.cmbUri.SelectedIndexChanged += new System.EventHandler(this.cmbUri_SelectedIndexChanged);
+            // 
+            // nudTestSrc
+            // 
+            this.nudTestSrc.Enabled = false;
+            this.nudTestSrc.Location = new System.Drawing.Point(72, 68);
+            this.nudTestSrc.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.nudTestSrc.Name = "nudTestSrc";
+            this.nudTestSrc.Size = new System.Drawing.Size(42, 20);
+            this.nudTestSrc.TabIndex = 6;
             // 
             // nudLocalIdx
             // 
@@ -139,6 +167,17 @@
             this.rbtnRtsp.UseVisualStyleBackColor = true;
             this.rbtnRtsp.CheckedChanged += new System.EventHandler(this.rbtnRtsp_CheckedChanged);
             // 
+            // rbtnTest
+            // 
+            this.rbtnTest.AutoSize = true;
+            this.rbtnTest.Location = new System.Drawing.Point(6, 68);
+            this.rbtnTest.Name = "rbtnTest";
+            this.rbtnTest.Size = new System.Drawing.Size(66, 17);
+            this.rbtnTest.TabIndex = 4;
+            this.rbtnTest.Text = "Testsrc: ";
+            this.rbtnTest.UseVisualStyleBackColor = true;
+            this.rbtnTest.CheckedChanged += new System.EventHandler(this.rbtnTest_CheckedChanged);
+            // 
             // gbxControl
             // 
             this.gbxControl.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -149,7 +188,7 @@
             this.gbxControl.Controls.Add(this.lblStatus);
             this.gbxControl.Location = new System.Drawing.Point(710, 12);
             this.gbxControl.Name = "gbxControl";
-            this.gbxControl.Size = new System.Drawing.Size(96, 167);
+            this.gbxControl.Size = new System.Drawing.Size(96, 163);
             this.gbxControl.TabIndex = 6;
             this.gbxControl.TabStop = false;
             this.gbxControl.Text = "Controls";
@@ -174,6 +213,17 @@
             this.btnRecord.UseVisualStyleBackColor = true;
             this.btnRecord.Click += new System.EventHandler(this.btnRecord_Click);
             // 
+            // gbxOverlay
+            // 
+            this.gbxOverlay.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.gbxOverlay.Location = new System.Drawing.Point(390, 412);
+            this.gbxOverlay.Name = "gbxOverlay";
+            this.gbxOverlay.Size = new System.Drawing.Size(416, 94);
+            this.gbxOverlay.TabIndex = 7;
+            this.gbxOverlay.TabStop = false;
+            this.gbxOverlay.Text = "Overlay";
+            // 
             // yascControl1
             // 
             this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -186,55 +236,33 @@
             this.yascControl1.Connected = false;
             this.yascControl1.ConnectionUri = null;
             this.yascControl1.DeviceIndex = 0;
-            this.yascControl1.IsRecording = false;
             this.yascControl1.Location = new System.Drawing.Point(12, 12);
             this.yascControl1.Name = "yascControl1";
             this.yascControl1.OverlayObjects = null;
             this.yascControl1.Preview = false;
-            this.yascControl1.Size = new System.Drawing.Size(683, 394);
+            this.yascControl1.Size = new System.Drawing.Size(683, 391);
             this.yascControl1.TabIndex = 3;
             this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
-            // 
-            // rbtnTest
-            // 
-            this.rbtnTest.AutoSize = true;
-            this.rbtnTest.Location = new System.Drawing.Point(6, 68);
-            this.rbtnTest.Name = "rbtnTest";
-            this.rbtnTest.Size = new System.Drawing.Size(66, 17);
-            this.rbtnTest.TabIndex = 4;
-            this.rbtnTest.Text = "Testsrc: ";
-            this.rbtnTest.UseVisualStyleBackColor = true;
-            this.rbtnTest.CheckedChanged += new System.EventHandler(this.rbtnTest_CheckedChanged);
-            // 
-            // nudTestSrc
-            // 
-            this.nudTestSrc.Enabled = false;
-            this.nudTestSrc.Location = new System.Drawing.Point(72, 68);
-            this.nudTestSrc.Maximum = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.nudTestSrc.Name = "nudTestSrc";
-            this.nudTestSrc.Size = new System.Drawing.Size(42, 20);
-            this.nudTestSrc.TabIndex = 6;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(818, 536);
+            this.ClientSize = new System.Drawing.Size(818, 515);
+            this.Controls.Add(this.gbxOverlay);
             this.Controls.Add(this.gbxControl);
             this.Controls.Add(this.gbxSrc);
             this.Controls.Add(this.yascControl1);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.gbxSrc.ResumeLayout(false);
             this.gbxSrc.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).EndInit();
             this.gbxControl.ResumeLayout(false);
             this.gbxControl.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -256,6 +284,8 @@
         private System.Windows.Forms.Button btnBrowse;
         private System.Windows.Forms.NumericUpDown nudTestSrc;
         private System.Windows.Forms.RadioButton rbtnTest;
+        private System.Windows.Forms.GroupBox gbxOverlay;
+        private System.Windows.Forms.Button btnDump;
     }
 }
 

@@ -22,10 +22,10 @@ namespace YetAnotherStreamingContol
     /// A GstCam is the base class for a streaming camera. It can have any type of streaming source (USB, RTSP, MJPG, etc.) and any 
     /// type of recording branch. The rough outline of the pipeline is as follows: 
     /// 
-    ///                                     /--> PreviewSink (autovideosink)
-    /// SourceBIN --> Overlay --> Tee _____/
-    ///                                    \ 
-    ///                                     \ --> RecordBIN
+    ///                                                   /--> queueDisp --> PreviewSink (autovideosink)
+    /// SourceBIN --> decodeBin --> Overlay --> Tee _____/
+    ///                                                  \ 
+    ///                                                   \ [--> RecordBIN]
     ///                                     
     /// Easier said than done.
     /// </summary>
@@ -34,15 +34,19 @@ namespace YetAnotherStreamingContol
         private Pipeline pipeline;
         sysThread.Thread glibThread;
         static GLib.MainLoop glibLoop;
-        Bin binSource, // Either an RTSP or local (USB cam) or test source
-            binRecord; // Bin to hold all the recording elements (to add/remove at once). 
+        Bin binSource,       // Either an RTSP or local (USB cam) or test source
+            binRecord,       // Bin to hold all the recording elements (to add/remove at once). 
+            binDecode;       // Autoplugger bin to create decode path. 
+
         Pad padSrcBinSource, // Pad from source bin
             padTeeRec,       // Pad from record branch
             padTeeDisp,
             padRecBinSink;
 
-        // Source elements. 
-        Element mRtspSrc, mRtpDepay, mQueueDec, mDecode;
+        // Source elements (RTSP). Use decodebin instead. 
+        //Element mRtspSrc, mRtpDepay, mQueueDec, mDecode;
+
+        Element srcElt;
 
         // Display elements
         Element mQueueDisp, mDispSink, mConvert; 
@@ -57,16 +61,27 @@ namespace YetAnotherStreamingContol
         private CamState _camState = CamState.Disconnected;
 
         public ulong HdlPreviewPanel { get; set; }
-        public bool IsRecording { get; private set; }
+        public bool IsRecording { get; private set; } = false;
         public bool IsConnected { get; private set; }
-        public string ConnectionUri { get; set; }
-        public string CapFilename { get; set; }
+        public string ConnectionUri {
+            get;
+            set; }
+        public string CapFilename { get; set; } = "";
         public int DeviceIndex { get; set; }
-        public bool UseTestSource { get; set; } = false;
         public bool EnableFullscreenDblClick { get; set; } = true;
         public int VideoSplitTimeS { get; set; }
         public int VideoSplitSizeMb { get; set; }
-        public bool SplitRecordedVideo { get; set; }
+        public bool SplitRecordedVideo { get; set; } = true;
+        private CamType _type = CamType.Local; 
+        public CamType CamType {
+            get { return _type; }
+            set {
+                if (_type != value)
+                {
+                    _type = value;
+                    SetupSourceBin();
+                }
+            } }
 
         public CamState CameraState { get {
                 return _camState; 
@@ -121,7 +136,8 @@ namespace YetAnotherStreamingContol
         public GstCam()
         {
             //detectGstPath();
-
+            //if (!pipelineCreated)
+            //    SetupPipeline(); 
         }
 
         /// <summary>
@@ -149,10 +165,11 @@ namespace YetAnotherStreamingContol
                 return;
             }
 
-            var ret = pipeline.SetState(State.Null);
-            sysDbg.WriteLine("SetState null: " + ret.ToString());
-            ret = pipeline.SetState(State.Ready);
-            sysDbg.WriteLine("SetState ready: " + ret.ToString());
+            //var ret = pipeline.SetState(State.Null);
+            //sysDbg.WriteLine("SetState null: " + ret.ToString());
+            //ret = pipeline.SetState(State.Ready);
+            //sysDbg.WriteLine("SetState ready: " + ret.ToString());
+            StateChangeReturn ret;
             ret = pipeline.SetState(State.Playing);
             sysDbg.WriteLine("SetState playing: " + ret.ToString());
 
@@ -170,7 +187,7 @@ namespace YetAnotherStreamingContol
                 //PreviewStarted?.Invoke(this, new EventArgs()); 
             }
 
-            GstUtilities.DumpGraph(pipeline, "yascCam.dot");
+            GstUtilities.DumpGraph(pipeline, "startPreview");
         }
 
         /// <summary>
@@ -180,13 +197,18 @@ namespace YetAnotherStreamingContol
         {
             try
             {
-                if (CameraState >= CamState.Connected)
+                if(binRecord.CurrentState == State.Playing)
+                {
+                    StopRecord(); 
+                }
+
+                if (CameraState >= CamState.Pending)
                 {
                     var ret = pipeline.SetState(State.Null);
                     if (ret != StateChangeReturn.Success)
                         sysDbg.WriteLine("Error setting state to null. ");
                     CameraState = CamState.Stopped;
-                    PreviewStopped?.Invoke(this, new EventArgs());
+                    //PreviewStopped?.Invoke(this, new EventArgs());
                 }
             }
             catch (Exception ex)
@@ -196,27 +218,63 @@ namespace YetAnotherStreamingContol
             }
         }
 
+        public void StopPreviewClosing()
+        {
+            try
+            {
+                if(CameraState == CamState.Recording)
+                {
+                    StopRecord(); 
+                }
+            }
+            catch(Exception ex)
+            {
+                sysDbg.WriteLine("Failed closing: " + ex.Message); 
+            }
+        }
+
+        /// <summary>
+        /// Start recording by setting up a probe and linking in the recording Tee branch. 
+        /// </summary>
+        /// <returns>true on success, false on failure</returns>
         public bool StartRecord()
         {
-            Console.WriteLine("Start record.");
+            sysDbg.WriteLine("Start record.");
 
             if (mTee == null)
+                return false;
+
+            if (binRecord.CurrentState == State.Playing)
                 return false;
 
             var padTemplate = mTee.GetPadTemplate("src_%u");
             padTeeRec = mTee.RequestPad(padTemplate);
 
+            //var seg = new Segment();
+            //seg.Init(Format.Buffers);
+            //seg.Flags = SegmentFlags.None;
+
+            //pipeline.SendEvent(Event.NewSegment(seg)); 
+
             if (padTeeRec == null)
                 return false;
 
-            padTeeRec.AddProbe(PadProbeType.Idle, linkRecordTeeCb);
+            padTeeRec.AddProbe(PadProbeType.Idle, cb_linkRecordTee);
 
-            this.CameraState = CamState.Recording;
+            //this.CameraState = CamState.Recording;
             return true;
         }
 
-        public void StopRecord()
+        public bool StopRecord()
         {
+            sysDbg.WriteLine("Stop record.");
+
+            if (padTeeRec == null)
+                return false;
+
+            padTeeRec.AddProbe(PadProbeType.Idle, cb_unlinkRecordTee);
+            this.CameraState = CamState.Previewing;
+            return true;
 
         }
 
@@ -236,16 +294,13 @@ namespace YetAnotherStreamingContol
                 glibThread = new sysThread.Thread(glibLoop.Run) { IsBackground = true };
             }
 
-            if (CameraState == CamState.Connected || CameraState == CamState.Stopped || CameraState == CamState.Previewing)
-                return true;
+            //if (CameraState == CamState.Connected || CameraState == CamState.Stopped || CameraState == CamState.Previewing)
+            //    return true;
             try
             {
-
-                //bool srcCreated = this.createSourceBin();
-                bool pipelineCreated = this.SetupPipeline();
-
-
-                //if(!srcCreated) sysDbg.WriteLine("error creating source bin.");
+                if(pipeline == null)
+                    pipelineCreated = this.SetupPipeline();
+                
 
                 if (!pipelineCreated) sysDbg.WriteLine("Error creating pipeline.");
 
@@ -264,6 +319,11 @@ namespace YetAnotherStreamingContol
             return r; 
         }
 
+        public void DumpPipeline(string path)
+        {
+            GstUtilities.DumpGraph(this.pipeline, path); 
+        }
+
         public void Disconnect()
         {
 
@@ -274,64 +334,85 @@ namespace YetAnotherStreamingContol
             return ""; 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>true on success</returns>
         protected virtual bool SetupSourceBin()
         {
             // Actual source element.
-            Element src;
             bool ret = true;
 
-            CreateElements(); 
+            if (pipeline == null)
+                return false;
 
-            if (this.UseTestSource)
+            if (pipeline.CurrentState == State.Playing)
+                return false;
+
+            if (!CreateElements())
+                return false;
+
+
+            binSource.Remove(srcElt); 
+
+            if (this._type == CamType.TestSrc)
             {
-                sysDbg.WriteLine("Creating video test source."); 
-                src = ElementFactory.Make("videotestsrc", "testsrc0");
-                ret &= binSource.Add(src);
-                padSrcBinSource = new GhostPad("srcPad", src.GetStaticPad("src"));
+                sysDbg.WriteLine("Creating video test source.");
+                srcElt = ElementFactory.Make("videotestsrc", "testsrc0");
+                ret &= binSource.Add(srcElt);
+
+                padSrcBinSource = new GhostPad("srcPad", srcElt.GetStaticPad("src"));
+                binSource.AddPad(padSrcBinSource);
+                binSource.Link(binDecode); 
             }
-            else if (string.IsNullOrWhiteSpace(ConnectionUri))
+            else if (string.IsNullOrWhiteSpace(this.ConnectionUri) || this._type == CamType.Local)
             {
-                sysDbg.WriteLine("Creating local source."); 
-                src = ElementFactory.Make("ksvideosrc", "localSrc0");
-                if (src == null) throw new ElementNullException("failed to create ksvideosrc.");
+                sysDbg.WriteLine("Creating local source.");
+                srcElt = ElementFactory.Make("ksvideosrc", "localSrc0");
+                if (srcElt == null) throw new ElementNullException("failed to create ksvideosrc.");
 
-                configureLocalSrc(src);
+                configureLocalSrc(srcElt);
                 Element caps = ElementFactory.Make("capsfilter", "caps0");
-                caps["caps"] = Caps.FromString("video/x-raw,width=1280,height=720"); 
+                caps["caps"] = Caps.FromString("video/x-raw,width=1280,height=720");
                 //caps["width"] = 1280;
                 //caps["height"] = 720;
 
-                binSource.Add(src, caps); 
-                ret &= src.Link(caps);
+                binSource.Add(srcElt, caps);
 
-                padSrcBinSource = new GhostPad("srcPad", caps.GetStaticPad("src")); 
+                ret &= srcElt.Link(caps);
+
+                // If we're using ksvideosrc, we know the src pad already so link it now. 
+                padSrcBinSource = new GhostPad("srcPad", caps.GetStaticPad("src"));
+                binSource.AddPad(padSrcBinSource);
+                binSource.Link(binDecode); 
+
             }
-            else if(ConnectionUri.StartsWith("rtsp://")) // Rtspsrc
+            else if (ConnectionUri.StartsWith("rtsp://") && this._type == CamType.Rtsp) // Rtspsrc
             {
-                sysDbg.WriteLine("Creating rtsp source."); 
-                src = ElementFactory.Make("rtspsrc", "rtspsrc");
-                if (src == null) throw new ElementNullException("failed to create rtspsrc.");
+                sysDbg.WriteLine("Creating rtsp source.");
+                srcElt = ElementFactory.Make("rtspsrc", "rtspsrc");
+                if (srcElt == null) throw new ElementNullException("failed to create rtspsrc.");
 
-                Element mRtpDepay = ElementFactory.Make("rtph264depay", "rtpdepay0");
-                if (src == null) throw new ElementNullException("failed to create rtpDepay.");
+                srcElt["location"] = this.ConnectionUri;
+                srcElt["drop-on-latency"] = true;
+                srcElt["latency"] = 0;
 
-                binSource.Add(src, mRtpDepay);
-                ret &= src.Link(mRtpDepay);
-
-                padSrcBinSource = new GhostPad("srcPad", mRtpDepay.GetStaticPad("src")); 
+                // We don't have a pad until we enter the playing state, so can't add the ghost pad until later. 
+                srcElt.PadAdded += cb_binSrcPadAdded;
+                binSource.Add(srcElt);
+                
             }
-            else if(false) // MJPG
-            {            }
             else
             {
                 sysDbg.WriteLine("Error creating source. ");
-                return false; 
+                return false;
             }
-
-            binSource.AddPad(padSrcBinSource); 
+            
 
             return true;
         }
+
+        
 
         protected void configureLocalSrc(Element src)
         {
@@ -345,13 +426,13 @@ namespace YetAnotherStreamingContol
 
             try
             {
-                if(!Gst.Application.InitCheck())
+                if (!Gst.Application.InitCheck())
                     Gst.Application.Init();
                 GtkSharp.GstreamerSharp.ObjectManager.Initialize();
             }
             catch (Exception ex)
             {
-                sysDbg.WriteLine("Error initing gst applicaiton: " + ex.Message); 
+                sysDbg.WriteLine("Error initing gst applicaiton: " + ex.Message);
             }
 
             if (glibThread.ThreadState != sysThread.ThreadState.Running)
@@ -360,10 +441,31 @@ namespace YetAnotherStreamingContol
                 sysDbg.WriteLine("glib thread started.");
             }
 
-            pipeline = new Pipeline("pipeline0");
-            binSource = new Bin("srcbin0");
-            binRecord = new Bin("recordbin0");
+            // Create bins.
+            try
+            {
+                var error = false;
+                pipeline = new Pipeline("pipeline0");
+                error |= GstUtilities.CheckError(pipeline);
+                binSource = new Bin("srcbin0");
+                error |= GstUtilities.CheckError(binSource);
+                binRecord = new Bin("recordbin0");
+                error |= GstUtilities.CheckError(binRecord);
+                binDecode = (Bin)ElementFactory.Make("decodebin");
+                error |= GstUtilities.CheckError(binDecode);
 
+                if (error)
+                {
+                    Console.WriteLine("Error creating an element.");
+                }
+
+            }catch(Exception ex)
+            {
+                sysDbg.WriteLine("failed creating bins: " + ex.Message);
+                return false;
+            }
+
+            // Listen for messages. 
             var bus = pipeline.Bus;
             if (bus != null)
             {
@@ -371,39 +473,115 @@ namespace YetAnotherStreamingContol
                 bus.Connect("message::Error", HandleError);
                 bus.Connect("message::Info", HandleInfo);
                 bus.EnableSyncMessageEmission();
-                bus.SyncMessage += Bus_SyncMessage;
+                bus.SyncMessage += cb_busSyncMessage;
                 bus.AddSignalWatch();
                 bus.Message += HandleMessage;
             }
 
+            SetupSourceBin();
+            SetupRecordBinMp4(); 
 
-            SetupSourceBin(); 
+            try
+            {
+                // Add in the elements. 
+                pipeline.Add(binSource, mTee, mQueueDisp, mDispSink, binDecode);
 
-            pipeline.Add(binSource, mQueueDisp, mDispSink);
-            padSrcBinSource.Link(mQueueDisp.GetStaticPad("sink"));
-            //srcBin.Link(mQueueDisp);
-            mQueueDisp.Link(mDispSink); 
+                var template = mTee.GetPadTemplate("src_%u");
+                padTeeDisp = mTee.RequestPad(template);
 
+                var ret = padTeeDisp.Link(mQueueDisp.GetStaticPad("sink"));
+                if (ret != PadLinkReturn.Ok)
+                    sysDbg.WriteLine("Error linking tee to queue: " + ret.ToString()); 
+
+                // We have to link after a pad is created on the decode bin. 
+                binDecode.PadAdded += cb_binDecPadAdded;
+
+                // Link the last pad. 
+                if (!mQueueDisp.Link(mDispSink))
+                    sysDbg.WriteLine("Error linking display queue to display sink."); 
+
+            }
+            catch (Exception ex)
+            {
+                sysDbg.WriteLine("Error linking: " + ex.Message);
+                return false; 
+            }
             return true;
+        }
+
+        /// <summary>
+        /// Fired after data starts flowing through pipeline and type is detected. 
+        /// </summary>
+        /// <param name="o"></param>
+        /// <param name="args"></param>
+        private void cb_binDecPadAdded(object o, PadAddedArgs args)
+        {
+            sysDbg.WriteLine("Decode bin pad added.");
+
+            var newPad = args.NewPad;
+            var ret = newPad.Link(mTee.GetStaticPad("sink"));
+            if (ret != PadLinkReturn.Ok)
+                sysDbg.WriteLine("Error linking decode bin to tee: " + ret.ToString());
+
+            //if (mQueueDisp.Link(mDispSink))
+            //    sysDbg.WriteLine("Failed to link to dispsink. "); 
+
+            DumpPipeline("afterDecodeLink"); 
+        }
+
+        /// <summary>
+        /// Fired after pipeline enters paused state. Try to link to DecodeBin.
+        /// </summary>
+        /// <param name="o"></param>
+        /// <param name="args"></param>
+        private void cb_binSrcPadAdded(object o, PadAddedArgs args)
+        {
+            var src = (Element)o;
+            var newPad = args.NewPad;
+
+            if (padSrcBinSource != null)
+                binSource.RemovePad(padSrcBinSource); 
+
+            {
+                padSrcBinSource = new GhostPad("srcPad", newPad);
+                binSource.AddPad(padSrcBinSource);
+            }
+            
+            {
+                //var ret = padSrcBinSource.Link(newPad);
+                //if (ret != PadLinkReturn.Ok)
+                //    sysDbg.WriteLine("error re-linking to ghost pad: " + ret); 
+            }
+
+            if (!padSrcBinSource.IsLinked)
+            {
+                Pad bindecpad = binDecode.GetStaticPad("sink");
+                //if (bindecpad.IsLinked) bindecpad.Unlink(); 
+                var ret = padSrcBinSource.Link(binDecode.GetStaticPad("sink"));
+                if (ret != PadLinkReturn.Ok)
+                    sysDbg.WriteLine("Error linking to decbin " + ret.ToString());
+            }
+            DumpPipeline("afterRtspLink");
         }
 
         protected void SetupRecordBinMp4()
         {
             // Create elements
-            binRecord = new Bin("record_bin");
-            GstUtilities.CheckError(binRecord);
             mEncx264 = ElementFactory.Make("x264enc", "enc0");
             GstUtilities.CheckError(mEncx264);
             mTee = ElementFactory.Make("tee", "tee0");
             GstUtilities.CheckError(mTee);
-            muxMp4 = ElementFactory.Make("mp4mux", "mux0");
-            GstUtilities.CheckError(muxMp4);
+            //muxMp4 = ElementFactory.Make("mp4mux", "mux0");
+            //GstUtilities.CheckError(muxMp4);
 
-            mFileSink = ElementFactory.Make("filesink", "fsink0");
+            //mFileSink = ElementFactory.Make("filesink", "fsink0");
+            mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitsink0");
+            GstUtilities.CheckError(mSplitMuxSink); 
+
             mQueueRec = ElementFactory.Make("queue", "qRec");
 
             // Add to bin. 
-            binRecord.Add(mQueueRec, mEncx264, muxMp4, mFileSink);
+            binRecord.Add(mQueueRec, mEncx264, mSplitMuxSink);
 
             padRecBinSink = new GhostPad("sink", mQueueRec.GetStaticPad("sink"));
             binRecord.AddPad(padRecBinSink);
@@ -415,32 +593,62 @@ namespace YetAnotherStreamingContol
             mEncx264["speed-preset"] = 1;
             mEncx264["bitrate"] = 10000000;
 
-            muxMp4["faststart"] = true;
+            //muxMp4["faststart"] = true;
 
-            mFileSink["location"] = @"C:\gstreamer\recording\test_from_cs.mp4";
+            //mFileSink["location"] = this.CapFilename;
             //mFileSink["async"] = true;
+
+            mSplitMuxSink["location"] = this.CapFilename;
+            mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
+            mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB   
 
 
             mQueueRec["leaky"] = 2;
             mQueueDisp["leaky"] = 2;
 
 
-            // Link elements. 
-            if (!Element.Link(mQueueRec, mEncx264, muxMp4, mFileSink))
+            // Link elements (inside bin)
+            if (!Element.Link(mQueueRec, mEncx264, mSplitMuxSink))
                 Console.WriteLine("Error linking recording pipeline.");
 
             pipeline.MessageForward = true;
 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>true on success</returns>
         protected bool CreateElements()
         {
             sysDbg.WriteLine("Creating elements...");
 
-            mDispSink = ElementFactory.Make("autovideosink", "videosink0");
-            mQueueDisp = ElementFactory.Make("queue", "qDisp");
+            try
+            {
+                if (mDispSink == null)
+                    mDispSink = ElementFactory.Make("autovideosink", "videosink0");
+                GstUtilities.CheckError(mDispSink);
 
-            mDispSink["sync"] = false;
+                mDispSink["sync"] = false;
+
+                if (mQueueDisp == null)
+                    mQueueDisp = ElementFactory.Make("queue", "qDisp");
+                GstUtilities.CheckError(mQueueDisp);
+
+                if (mConvert == null)
+                    mConvert = ElementFactory.Make("videoconvert", "conv0");
+                GstUtilities.CheckError(mConvert);
+
+                if(mTee == null) 
+                    mTee = ElementFactory.Make("tee", "tee0");
+                GstUtilities.CheckError(mTee); 
+            }
+            catch (Exception ex)
+            {
+                sysDbg.WriteLine("Error creating elements: " + ex.Message);
+                return false;
+            }
+
 
             return true;
         }
@@ -450,7 +658,7 @@ namespace YetAnotherStreamingContol
         /// </summary>
         /// <param name="o"></param>
         /// <param name="args"></param>
-        private void Bus_SyncMessage(object o, SyncMessageArgs args)
+        private void cb_busSyncMessage(object o, SyncMessageArgs args)
         {
             //System.Diagnostics.Debug.WriteLine("bus_SyncMessage: " + args.Message.Type.ToString());
             if (Gst.Video.Global.IsVideoOverlayPrepareWindowHandleMessage(args.Message))
@@ -488,6 +696,11 @@ namespace YetAnotherStreamingContol
             }
         }
 
+        /// <summary>
+        /// Handle all bus messages. 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void HandleMessage(object sender, MessageArgs args)
         {
             
@@ -521,13 +734,19 @@ namespace YetAnotherStreamingContol
                     sysDbg.WriteLine("\tPipeline state changed from {0} to {1}; Pending: {2}", Element.StateGetName(oldState), Element.StateGetName(newState), Element.StateGetName(pendingState));
                     switch(newState)
                     {
+                        case State.VoidPending:
                         case State.Null:
                             CameraState = CamState.Stopped;
                             break;
                         case State.Playing:
-                            CameraState = CamState.Previewing;
+                            if(CameraState!= CamState.Recording)
+                                CameraState = CamState.Previewing;
+                            if (msg.Src.Name == binRecord.Name)
+                                CameraState = CamState.Recording;
                             break;
                         case State.Ready:
+                            CameraState = CamState.Connected;
+                            break;
                         case State.Paused:
                             CameraState = CamState.Pending;
                             break;
@@ -536,6 +755,7 @@ namespace YetAnotherStreamingContol
                             break;
                     }
                     break;
+                // !!!!! Important !!!!!
                 case MessageType.Element:
                     var structure = msg.Structure;
 
@@ -549,7 +769,8 @@ namespace YetAnotherStreamingContol
                             sysDbg.WriteLine("EOS received from: " + m.Src.Name);
                             if (m.Src.Name == binRecord.Name)
                             {
-                                //removeBinRec();
+                                removeBinRec();
+                                this.CameraState = CamState.Previewing;
                             }
                         }
                     }
@@ -605,14 +826,14 @@ namespace YetAnotherStreamingContol
 
             // Print error details on the screen
             msg.ParseError(out err, out debug);
-            Console.WriteLine("Error received from element {0}: {1}", msg.Src.Name, err.Message);
-            Console.WriteLine("Debugging information: {0}", debug != null ? debug : "none");
+            sysDbg.WriteLine("Error received from element {0}: {1}", msg.Src.Name, err.Message);
+            sysDbg.WriteLine("Debugging information: {0}", debug != null ? debug : "none");
 
             glibLoop.Quit();
         }
 
         /// <summary>
-        /// Handle error
+        /// Handle bus info messages.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
@@ -628,7 +849,13 @@ namespace YetAnotherStreamingContol
             msg.ParseInfo(out gInfo, out msgInfo);
         }
 
-        private PadProbeReturn linkRecordTeeCb(Pad p, PadProbeInfo inf)
+        /// <summary>
+        /// Link and sync the recording bin to start recording. 
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="inf"></param>
+        /// <returns></returns>
+        private PadProbeReturn cb_linkRecordTee(Pad p, PadProbeInfo inf)
         {
             try
             {
@@ -652,28 +879,32 @@ namespace YetAnotherStreamingContol
                         encPad.Unlink(mSplitMuxSink.GetStaticPad("sink"));
                         if (!binRecord.Remove(mSplitMuxSink))
                             sysDbg.WriteLine("Remove failed for splitmux.");
-                            //Console.WriteLine("remove failed."); 
+                        //Console.WriteLine("remove failed."); 
 
                         mSplitMuxSink.Dispose();
 
                         mSplitMuxSink = null;
-                        mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitmux1");
-                        if (GstUtilities.CheckError(mSplitMuxSink))
-                            sysDbg.WriteLine("Error recreating splitmuxsink.");
-
-                        if (!binRecord.Add(mSplitMuxSink))
-                            sysDbg.WriteLine("Error adding splitmux.");
-
-                        if (!mEncx264.Link(mSplitMuxSink))
-                            sysDbg.WriteLine("error linking splitmux.");
                     }
+                }
+
+                if (mSplitMuxSink == null)
+                {
+                    mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitmux1");
+                    if (GstUtilities.CheckError(mSplitMuxSink))
+                        sysDbg.WriteLine("Error recreating splitmuxsink.");
+
+                    if (!binRecord.Add(mSplitMuxSink))
+                        sysDbg.WriteLine("Error adding splitmux.");
+
+                    if (!mEncx264.Link(mSplitMuxSink))
+                        sysDbg.WriteLine("error linking splitmux.");
                 }
 
                 if (SplitRecordedVideo && mSplitMuxSink != null)
                 {
                     mSplitMuxSink["location"] = CapFilename;
-                    mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //10 * 1E9; // in ns
-                    mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //10 * 1E6; // 10 MB                                                               //mSplitMuxSink["async-handling"] = true;
+                    mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
+                    mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB                                                               //mSplitMuxSink["async-handling"] = true;
                 }
                 else
                 {
@@ -691,9 +922,9 @@ namespace YetAnotherStreamingContol
                 if (retLink != PadLinkReturn.Ok)
                     sysDbg.WriteLine("Error linking tee to record bin. " + retLink.ToString());
 
-                retLink = padTeeDisp.Link(mQueueDisp.GetStaticPad("sink"));
-                if (retLink != PadLinkReturn.Ok)
-                    sysDbg.WriteLine("Error linking display branch. " + retLink.ToString());
+                //retLink = padTeeDisp.Link(mQueueDisp.GetStaticPad("sink"));
+                //if (retLink != PadLinkReturn.Ok)
+                //    sysDbg.WriteLine("Error linking display branch. " + retLink.ToString());
 
 
                 StateChangeReturn ret;
@@ -713,12 +944,11 @@ namespace YetAnotherStreamingContol
 
                 if (!binRecord.SyncStateWithParent())
                     sysDbg.WriteLine("Error syncing state with parent.");
-
-                IsRecording = true;
+                
                 sysDbg.WriteLine("Recording started...");
 
-                GstUtilities.DumpGraph(pipeline, "rtsp_after_linkTee.dot");
-
+                GstUtilities.DumpGraph(pipeline, "rtsp_after_linkTee");
+                
             }
             catch (Exception ex)
             {
@@ -728,10 +958,16 @@ namespace YetAnotherStreamingContol
 
         }
 
-        private PadProbeReturn unlinkRecordTeeCb(Pad p, PadProbeInfo inf)
+        /// <summary>
+        /// Do the actual unlink to stop recording. However, we must wait until the EOS message is posted on the bus before removing the bin. 
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="inf"></param>
+        /// <returns></returns>
+        private PadProbeReturn cb_unlinkRecordTee(Pad p, PadProbeInfo inf)
         {
             Console.WriteLine("unlinking...");
-            // If we're not recording, simply remove the probe. 
+            // If we're not recording, simply do nothing (remove the probe).  
             if (this.CameraState != CamState.Recording)
                 return PadProbeReturn.Remove;
 
@@ -739,23 +975,36 @@ namespace YetAnotherStreamingContol
 
             padTeeRec.Unlink(padRecBinSink);
 
-            //mPipeline.Remove(binRec);
-
-            // note: have to wait for EOS to be sent to close the mp4 file correctly. 
-            var ret = binRecord.SetState(State.Null);
-            if (ret != StateChangeReturn.Success)
-                Console.WriteLine("Stopping record bin: " + ret.ToString());
-
             mTee.ReleaseRequestPad(padTeeRec);
+            padTeeRec.Unref(); 
 
             GstUtilities.DumpGraph(this.pipeline, "testsrc_after_unlink.dot");
+
+            this.CameraState = CamState.Previewing;
 
             return PadProbeReturn.Remove;
 
         }
 
+        /// <summary>
+        /// Remove the recording bin to stop recording. Very important that this is done _after_ the mux finishes the file. 
+        /// </summary>
+        private void removeBinRec()
+        {
+            var ret = binRecord.SetState(State.Null);
+
+            if (ret != StateChangeReturn.Success)
+                sysDbg.WriteLine("Error stopping record bin: " + ret.ToString());
+
+            if (!pipeline.Remove(binRecord))
+                sysDbg.WriteLine("Error removing record bin from pipeline.");
+            else
+                sysDbg.WriteLine("Record bin removed successfully.");
+        }
+
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
+        private bool pipelineCreated;
 
         protected virtual void Dispose(bool disposing)
         {

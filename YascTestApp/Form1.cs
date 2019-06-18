@@ -48,9 +48,18 @@ namespace YascTestApp
         /// <param name="newStatus"></param>
         private void SetStatusText(string newStatus)
         {
+            if (this.IsDisposed) return;
+
             if (lblStatus.InvokeRequired)
             {
-                this.Invoke(new Action<string>(SetStatusText), newStatus);
+                try
+                {
+                    this.Invoke(new Action<string>(SetStatusText), newStatus);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("error updating lable"); 
+                }
             }
             else
                 lblStatus.Text = newStatus; 
@@ -89,7 +98,7 @@ namespace YascTestApp
         private void btnBrowse_Click(object sender, EventArgs e)
         {
             var saveDialog = new SaveFileDialog();
-            saveDialog.DefaultExt = ".avi";
+            saveDialog.DefaultExt = ".mp4";
             saveDialog.AddExtension = true;
             saveDialog.CheckFileExists = false;
             saveDialog.OverwritePrompt = true;
@@ -100,6 +109,8 @@ namespace YascTestApp
             if(res == DialogResult.OK)
             {
                 yascControl1.CapFilename = saveDialog.FileName;
+                Properties.Settings.Default.LastPath = saveDialog.FileName;
+                Properties.Settings.Default.Save(); 
             }
         }
 
@@ -121,11 +132,37 @@ namespace YascTestApp
         private void rbtnLocal_CheckedChanged(object sender, EventArgs e)
         {
             nudLocalIdx.Enabled = rbtnLocal.Checked;
+            if(rbtnLocal.Checked)
+                yascControl1.CamType = GstEnums.CamType.Local;
         }
 
         private void rbtnTest_CheckedChanged(object sender, EventArgs e)
         {
             nudTestSrc.Enabled = rbtnTest.Checked;
+            if(rbtnTest.Checked)
+                yascControl1.CamType = GstEnums.CamType.TestSrc;
+        }
+
+        private void btnDump_Click(object sender, EventArgs e)
+        {
+            yascControl1.DumpGraph("myDump"); 
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            string path = Properties.Settings.Default.LastPath;
+            if (!string.IsNullOrEmpty(path))
+                yascControl1.CapFilename = path; 
+        }
+
+        private void cmbUri_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            yascControl1.StopPreview(); 
         }
     }
 }

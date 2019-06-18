@@ -11,12 +11,16 @@ namespace YetAnotherStreamingContol
 {
     public class GstUtilities
     {
-        public static void DumpGraph(Pipeline pipe, string fname)
+        public static void DumpGraph(Pipeline pipe, string name, string path = @"C:\gstreamer\dotfiles")
         {
-#if YASC_DEBUG
+#if true //YASC_DEBUG
             string dotdata = Gst.Debug.BinToDotData(pipe, DebugGraphDetails.All);
             if (!string.IsNullOrWhiteSpace(dotdata))
-                File.WriteAllText(Path.Combine(@"C:\gstreamer\dotfiles", fname), dotdata);
+            {
+                string full = Path.Combine(path, name + System.DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".dot");
+
+                File.WriteAllText(full, dotdata);
+            }
 #endif
         }
 
@@ -46,10 +50,18 @@ namespace YetAnotherStreamingContol
             if (elt == null)
             {
                 Console.WriteLine("Element is null.");
+                throw new YascBaseException("Error creating an element.");
                 return true;
             }
 
             return false;
+        }
+
+        public static void CheckError(bool err)
+        {
+            if (err) return;
+            System.Diagnostics.Debug.WriteLine("Error ");
+            throw new Exception(); 
         }
 
         public static double SecondsToNs(uint s)

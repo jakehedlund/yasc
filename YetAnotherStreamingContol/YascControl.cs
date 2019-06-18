@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using sysDbg = System.Diagnostics.Debug;
 using static YetAnotherStreamingContol.GstEnums;
 using System.Drawing;
+using System.IO;
 
 namespace YetAnotherStreamingContol
 {
@@ -30,7 +31,18 @@ namespace YetAnotherStreamingContol
         /// <summary>
         /// RTSP or Local camera. 
         /// </summary>
-        public CamType CamType { get; set; }
+        public CamType CamType
+        {
+            get
+            {
+                return gstCam == null ? CamType.Local : gstCam.CamType;
+            }
+            set
+            {
+                if (gstCam != null)
+                    gstCam.CamType = value;
+            }
+        }
 
         /// <summary>
         ///  Local device index (set to -2 for IP cameras... maybe...). 
@@ -40,7 +52,7 @@ namespace YetAnotherStreamingContol
         /// <summary>
         /// Full path including filename to save files. 
         /// </summary>
-        public string CapFilename { get; set; }
+        public string CapFilename { get { return gstCam?.CapFilename; } set { if (gstCam != null) gstCam.CapFilename = value; } }
 
         /// <summary>
         /// Not used. 
@@ -50,6 +62,7 @@ namespace YetAnotherStreamingContol
         /// <summary>
         /// Set to true to connect; false to disconnect.
         /// </summary>
+        [Browsable(false)]
         public bool Connected
         {
             get
@@ -68,6 +81,10 @@ namespace YetAnotherStreamingContol
                 //}
             }
         }
+
+        [Browsable(false)]
+        public bool IsRecording { get { return gstCam?.CameraState == CamState.Recording; } }
+
         /// <summary>
         /// Set to true to start preview (will try to connect automatically). Set to false to stop preview (will stay connected). 
         /// </summary>
@@ -85,10 +102,19 @@ namespace YetAnotherStreamingContol
             }
         }
 
-        public bool IsRecording { get; set; }
-
+        /// <summary>
+        /// TODO: Implement OSD objects
+        /// </summary>
         public List<OsdObject> OverlayObjects {get; set; }
-        public string ConnectionUri { get; set; }
+        public string ConnectionUri { get
+            {
+                return gstCam == null ? "" : gstCam.ConnectionUri; 
+            }
+            set {
+                if (gstCam != null && !string.IsNullOrEmpty(value))
+                    gstCam.ConnectionUri = value;
+            }
+        }
         #endregion
 
         #region Events
@@ -147,7 +173,7 @@ namespace YetAnotherStreamingContol
                 try
                 {
                     gstCam.DeviceIndex = this.DeviceIndex;
-                    gstCam.ConnectionUri = "";
+                    gstCam.ConnectionUri = this.ConnectionUri;
                     gstCam.StartPreview();
                 }
                 catch(Exception ex)
@@ -164,12 +190,16 @@ namespace YetAnotherStreamingContol
 
         public void StartRecord()
         {
-            gstCam.StartRecord();
+            if(gstCam.StartRecord())
+            {
+                RecordingStarted?.Invoke(this, new EventArgs()); 
+            }
         }
 
         public void StopRecord()
         {
             gstCam.StopRecord();
+            RecordingEnded?.Invoke(this, new EventArgs());
         }
 
         public void UpdateOsd(string formattedText)
@@ -181,6 +211,8 @@ namespace YetAnotherStreamingContol
         {
 
         }
+
+        public void UpdateOsd(string text, int idx) { }
         #endregion
 
         #region PrivateMethods
@@ -328,6 +360,10 @@ namespace YetAnotherStreamingContol
             }
         }
         
+        public void DumpGraph(string name, string path = @"C:\gstreamer\dotfiles")
+        {
+            gstCam?.DumpPipeline(Path.Combine(path, name));
+        }
         #endregion
         
         private void pnlPreview_DoubleClick(object sender, EventArgs e)
