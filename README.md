@@ -5,22 +5,22 @@ Yet Another Streaming Control
 yasc is a high-level, fully-featured, low-latency, fast, streaming (and recording) .NET UserControl based on GStreamer. It was originally written for .NET and WinForms in C#. Support for WPF is planned. It is intended as an easy-to-use, drop-in video streaming control for programmers who just want to program and not deal with video rendering.
 
 ## Features
-Initial release supports h.264 via RTSP (MJPG coming soon) and built-in/USB webcam streaming, text overlays, realtime preview, recording, and more. It is designed to be as simple and easy to use as possible with drop-and-go functionality. 
+Initial release supports h.264 and MJPG via RTSP (anything decodebin can handle) and built-in/USB webcam streaming, text overlays, realtime preview, recording, and more. It is designed to be as simple and easy to use as possible with drop-and-go functionality. 
 
-* Base features: 
+* Current features: 
   * Streaming via RTSP or local USB webcam (built-in laptop cam works too).
   * OSD: on screen display - text overlays (supports colors, fonts, and frequent updates).
-  * Stream recording (file splitting at time and size limits also supported). 
+  * Stream recording (file splitting at time and size thresholds also supported). 
   * Fullscreen (double click or programmatically). 
+  * Snapshots (frame-grabs).
   * Test video source (videotestsrc). 
   * Low-latency (150ms or better). 
-  * Simple.
+  * Simple to use. 
   * Fast (GStreamer is written entirely in C). 
   * Extensible and flexible backend.
   * And more... 
 * Planned: 
   * WPF support. 
-  * MJPG support. 
   * Recording stitching (pause/resume recordings). 
   * Audio previewing (and recording).
   * PIP (picture-in-picture). 
@@ -28,11 +28,12 @@ Initial release supports h.264 via RTSP (MJPG coming soon) and built-in/USB webc
   * 64-bit support. 
   * Separate preview and record streams (lower quality preview, HD recording).
   * Separate/different preview and record overlays. 
-  * Subtitle overlays (raw stream without overlay, rendered by player as subtitles). 
+  * Subtitle overlays (raw stream without overlay, rendered by player [e.g. VLC] as subtitles). 
   * Better flexibility for different pipelines and stream formats. 
   * Framerate manipulation (e.g. drop every other frame).
   * Graphical overlays (cairooverlay or rsvgoverlay).
-  * Merge modules included in the DLL? (eliminate external gst dependency). 
+  * Merge modules included? (eliminate external gst dependency). 
+  * RTSP server support (re-streaming).
   
 As this is a relatively simple wrapper around the great GStreamer, many more features are possible and easily implementable. Behind the scenes, a gst Pipeline is created and manipulated to render the preview source and all the other operations. Therefore, this can be used as a comprehensive C# example program for GStreamer. 
   

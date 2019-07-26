@@ -13,6 +13,9 @@ namespace YascTestApp
 {
     public partial class Form1 : Form
     {
+
+        Form prevForm; 
+
         public Form1()
         {
             InitializeComponent();
@@ -24,7 +27,8 @@ namespace YascTestApp
 
         private void YascControl1_PreviewStopped(object sender, EventArgs e)
         {
-            SetStatusText("preview stopped."); 
+            SetStatusText("preview stopped.");
+            enableControls(true); 
         }
 
         private void YascControl1_RecordingStarted(object sender, EventArgs e)
@@ -34,7 +38,9 @@ namespace YascTestApp
 
         private void YascControl1_PreviewStarted(object sender, EventArgs e)
         {
-            SetStatusText("Preview Started"); 
+            SetStatusText("Preview Started");
+            enableControls(false);
+            
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -42,27 +48,45 @@ namespace YascTestApp
             yascControl1.StartPreview();
         }
 
+        private void enableControls(bool en)
+        {
+            if(this.InvokeRequired)
+            {
+                this.Invoke(new Action<bool>(enableControls), en);
+                return;
+            }
+
+            rbtnLocal.Enabled = en;
+            rbtnRtsp.Enabled = en;
+            rbtnTest.Enabled = en;
+
+            nudLocalIdx.Enabled = en;
+            nudTestSrc.Enabled = en;
+        }
+
         /// <summary>
-        /// Update status label text. 
+        /// Update status label text safely. 
         /// </summary>
         /// <param name="newStatus"></param>
         private void SetStatusText(string newStatus)
         {
             if (this.IsDisposed) return;
 
-            if (lblStatus.InvokeRequired)
-            {
-                try
-                {
-                    this.Invoke(new Action<string>(SetStatusText), newStatus);
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("error updating lable"); 
-                }
-            }
-            else
-                lblStatus.Text = newStatus; 
+            if(!this.Disposing)
+                lblStatus.Text = newStatus;
+            //if (lblStatus.InvokeRequired)
+            //{
+            //    try
+            //    {
+            //        this.Invoke(new Action<string>(SetStatusText), newStatus);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        Console.WriteLine("error updating lable"); 
+            //    }
+            //}
+            //else
+            //    lblStatus.Text = newStatus; 
         }
 
         private void btnStop_Click(object sender, EventArgs e)
@@ -88,11 +112,11 @@ namespace YascTestApp
                 yascControl1.ConnectionUri = cmbUri.Text;
                 yascControl1.CamType = GstEnums.CamType.Rtsp;
             }
-            else
-            {
-                yascControl1.CamType = GstEnums.CamType.Local; 
-                yascControl1.DeviceIndex = (int)nudLocalIdx.Value;
-            }
+            //else
+            //{
+            //    yascControl1.CamType = GstEnums.CamType.Local; 
+            //    yascControl1.DeviceIndex = (int)nudLocalIdx.Value;
+            //}
         }
 
         private void btnBrowse_Click(object sender, EventArgs e)
@@ -163,6 +187,51 @@ namespace YascTestApp
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             yascControl1.StopPreview(); 
+        }
+
+        private void yascControl1_SnapshotReady(object sender, Image e)
+        {
+            pbxSnapshot.Image = e;
+        }
+
+        private void btnSnapshot_Click(object sender, EventArgs e)
+        {
+            yascControl1.TakeSnapshot(); 
+        }
+
+        private void cmbUri_Leave(object sender, EventArgs e)
+        {
+            if (rbtnRtsp.Checked && yascControl1 != null)
+                yascControl1.ConnectionUri = cmbUri.Text;
+        }
+
+        private void pbxSnapshot_Click(object sender, EventArgs e)
+        {
+            PictureBox prevPanel = new PictureBox()
+            {
+                Image = pbxSnapshot.Image,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Dock = DockStyle.Fill
+            };
+
+            if (prevForm == null || prevForm.IsDisposed)
+            {
+                prevForm = new Form() { Width = 640, Height = 360 };
+                prevForm.Controls.Add(prevPanel); 
+            }
+            else
+            {
+                prevForm.Controls.Clear();
+                prevForm.Controls.Add(prevPanel); 
+            }
+            prevForm.Show(); 
+
+
+        }
+
+        private void nudTestSrc_ValueChanged(object sender, EventArgs e)
+        {
+            yascControl1.DeviceIndex = (int)nudTestSrc.Value; 
         }
     }
 }

@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.btnStart = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
-            this.lblStatus = new System.Windows.Forms.Label();
             this.rbtnLocal = new System.Windows.Forms.RadioButton();
             this.gbxSrc = new System.Windows.Forms.GroupBox();
             this.btnDump = new System.Windows.Forms.Button();
@@ -44,10 +44,19 @@
             this.btnRecord = new System.Windows.Forms.Button();
             this.gbxOverlay = new System.Windows.Forms.GroupBox();
             this.yascControl1 = new YetAnotherStreamingContol.YascControl();
+            this.gbxSnapshot = new System.Windows.Forms.GroupBox();
+            this.btnSnapshot = new System.Windows.Forms.Button();
+            this.pbxSnapshot = new System.Windows.Forms.PictureBox();
+            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
             this.gbxControl.SuspendLayout();
+            this.gbxSnapshot.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbxSnapshot)).BeginInit();
+            this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnStart
@@ -69,15 +78,6 @@
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
-            // 
-            // lblStatus
-            // 
-            this.lblStatus.AutoSize = true;
-            this.lblStatus.Location = new System.Drawing.Point(3, 76);
-            this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(37, 13);
-            this.lblStatus.TabIndex = 2;
-            this.lblStatus.Text = "Status";
             // 
             // rbtnLocal
             // 
@@ -102,7 +102,7 @@
             this.gbxSrc.Controls.Add(this.rbtnRtsp);
             this.gbxSrc.Controls.Add(this.rbtnTest);
             this.gbxSrc.Controls.Add(this.rbtnLocal);
-            this.gbxSrc.Location = new System.Drawing.Point(12, 409);
+            this.gbxSrc.Location = new System.Drawing.Point(12, 401);
             this.gbxSrc.Name = "gbxSrc";
             this.gbxSrc.Size = new System.Drawing.Size(372, 94);
             this.gbxSrc.TabIndex = 5;
@@ -129,19 +129,22 @@
             this.cmbUri.TabIndex = 7;
             this.cmbUri.Text = "rtsp://192.168.0.250:554/cam0_0";
             this.cmbUri.SelectedIndexChanged += new System.EventHandler(this.cmbUri_SelectedIndexChanged);
+            this.cmbUri.Leave += new System.EventHandler(this.cmbUri_Leave);
             // 
             // nudTestSrc
             // 
             this.nudTestSrc.Enabled = false;
             this.nudTestSrc.Location = new System.Drawing.Point(72, 68);
             this.nudTestSrc.Maximum = new decimal(new int[] {
-            5,
+            24,
             0,
             0,
             0});
             this.nudTestSrc.Name = "nudTestSrc";
             this.nudTestSrc.Size = new System.Drawing.Size(42, 20);
             this.nudTestSrc.TabIndex = 6;
+            this.toolTip1.SetToolTip(this.nudTestSrc, "TestSrc pattern (consult videotestsrc docs)");
+            this.nudTestSrc.ValueChanged += new System.EventHandler(this.nudTestSrc_ValueChanged);
             // 
             // nudLocalIdx
             // 
@@ -185,10 +188,9 @@
             this.gbxControl.Controls.Add(this.btnRecord);
             this.gbxControl.Controls.Add(this.btnStop);
             this.gbxControl.Controls.Add(this.btnStart);
-            this.gbxControl.Controls.Add(this.lblStatus);
-            this.gbxControl.Location = new System.Drawing.Point(710, 12);
+            this.gbxControl.Location = new System.Drawing.Point(695, 12);
             this.gbxControl.Name = "gbxControl";
-            this.gbxControl.Size = new System.Drawing.Size(96, 163);
+            this.gbxControl.Size = new System.Drawing.Size(111, 163);
             this.gbxControl.TabIndex = 6;
             this.gbxControl.TabStop = false;
             this.gbxControl.Text = "Controls";
@@ -217,7 +219,7 @@
             // 
             this.gbxOverlay.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.gbxOverlay.Location = new System.Drawing.Point(390, 412);
+            this.gbxOverlay.Location = new System.Drawing.Point(390, 401);
             this.gbxOverlay.Name = "gbxOverlay";
             this.gbxOverlay.Size = new System.Drawing.Size(416, 94);
             this.gbxOverlay.TabIndex = 7;
@@ -236,19 +238,72 @@
             this.yascControl1.Connected = false;
             this.yascControl1.ConnectionUri = null;
             this.yascControl1.DeviceIndex = 0;
+            this.yascControl1.EnableFullscreenDblClick = true;
             this.yascControl1.Location = new System.Drawing.Point(12, 12);
             this.yascControl1.Name = "yascControl1";
             this.yascControl1.OverlayObjects = null;
             this.yascControl1.Preview = false;
-            this.yascControl1.Size = new System.Drawing.Size(683, 391);
+            this.yascControl1.Size = new System.Drawing.Size(663, 381);
             this.yascControl1.TabIndex = 3;
+            this.yascControl1.SnapshotReady += new System.EventHandler<System.Drawing.Image>(this.yascControl1_SnapshotReady);
             this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
+            // 
+            // gbxSnapshot
+            // 
+            this.gbxSnapshot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.gbxSnapshot.Controls.Add(this.btnSnapshot);
+            this.gbxSnapshot.Controls.Add(this.pbxSnapshot);
+            this.gbxSnapshot.Location = new System.Drawing.Point(681, 181);
+            this.gbxSnapshot.Name = "gbxSnapshot";
+            this.gbxSnapshot.Size = new System.Drawing.Size(134, 147);
+            this.gbxSnapshot.TabIndex = 8;
+            this.gbxSnapshot.TabStop = false;
+            this.gbxSnapshot.Text = "Snapshot";
+            // 
+            // btnSnapshot
+            // 
+            this.btnSnapshot.Location = new System.Drawing.Point(6, 114);
+            this.btnSnapshot.Name = "btnSnapshot";
+            this.btnSnapshot.Size = new System.Drawing.Size(119, 23);
+            this.btnSnapshot.TabIndex = 1;
+            this.btnSnapshot.Text = "Snapshot";
+            this.btnSnapshot.UseVisualStyleBackColor = true;
+            this.btnSnapshot.Click += new System.EventHandler(this.btnSnapshot_Click);
+            // 
+            // pbxSnapshot
+            // 
+            this.pbxSnapshot.BackColor = System.Drawing.Color.Gray;
+            this.pbxSnapshot.Location = new System.Drawing.Point(6, 19);
+            this.pbxSnapshot.Name = "pbxSnapshot";
+            this.pbxSnapshot.Size = new System.Drawing.Size(122, 89);
+            this.pbxSnapshot.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pbxSnapshot.TabIndex = 0;
+            this.pbxSnapshot.TabStop = false;
+            this.pbxSnapshot.Click += new System.EventHandler(this.pbxSnapshot_Click);
+            // 
+            // statusStrip1
+            // 
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.lblStatus});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 498);
+            this.statusStrip1.Name = "statusStrip1";
+            this.statusStrip1.Size = new System.Drawing.Size(818, 22);
+            this.statusStrip1.TabIndex = 9;
+            this.statusStrip1.Text = "statusStrip1";
+            // 
+            // lblStatus
+            // 
+            this.lblStatus.Name = "lblStatus";
+            this.lblStatus.Size = new System.Drawing.Size(31, 17);
+            this.lblStatus.Text = "Status";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(818, 515);
+            this.ClientSize = new System.Drawing.Size(818, 520);
+            this.Controls.Add(this.statusStrip1);
+            this.Controls.Add(this.gbxSnapshot);
             this.Controls.Add(this.gbxOverlay);
             this.Controls.Add(this.gbxControl);
             this.Controls.Add(this.gbxSrc);
@@ -262,8 +317,12 @@
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).EndInit();
             this.gbxControl.ResumeLayout(false);
-            this.gbxControl.PerformLayout();
+            this.gbxSnapshot.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pbxSnapshot)).EndInit();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -272,7 +331,6 @@
 
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.Button btnStop;
-        private System.Windows.Forms.Label lblStatus;
         private YetAnotherStreamingContol.YascControl yascControl1;
         private System.Windows.Forms.RadioButton rbtnLocal;
         private System.Windows.Forms.GroupBox gbxSrc;
@@ -286,6 +344,12 @@
         private System.Windows.Forms.RadioButton rbtnTest;
         private System.Windows.Forms.GroupBox gbxOverlay;
         private System.Windows.Forms.Button btnDump;
+        private System.Windows.Forms.GroupBox gbxSnapshot;
+        private System.Windows.Forms.Button btnSnapshot;
+        private System.Windows.Forms.PictureBox pbxSnapshot;
+        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.ToolStripStatusLabel lblStatus;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }
 

@@ -25,16 +25,19 @@ namespace YetAnotherStreamingContol
         }
 
         /// <summary>
-        /// Returns true if any of the elements are null. 
+        /// Throws if any element is null. 
         /// </summary>
         /// <param name="elts"></param>
         /// <returns></returns>
         public static bool CheckError(params Element[] elts)
         {
+            if (elts == null)
+                return true;
+
             if (elts.Any(e => e == null))
             {
-                Console.WriteLine("Error creating an element.");
-                return true;
+                int i = System.Array.FindIndex(elts, el => el == null);
+                throw new YascElementNullException($"Element {i} is null. "); 
             }
 
             return false;
@@ -49,9 +52,8 @@ namespace YetAnotherStreamingContol
         {
             if (elt == null)
             {
-                Console.WriteLine("Element is null.");
-                throw new YascBaseException("Error creating an element.");
-                return true;
+                //System.Diagnostics.Debug.WriteLine("Element is null.");
+                throw new YascElementNullException("Error creating an element.");
             }
 
             return false;
@@ -60,8 +62,8 @@ namespace YetAnotherStreamingContol
         public static void CheckError(bool err)
         {
             if (err) return;
-            System.Diagnostics.Debug.WriteLine("Error ");
-            throw new Exception(); 
+            //System.Diagnostics.Debug.WriteLine("Error ");
+            throw new YascBaseException("Input was false. "); 
         }
 
         public static double SecondsToNs(uint s)
@@ -155,18 +157,19 @@ namespace YetAnotherStreamingContol
             Local, 
             Rtsp, 
             Mjpg,
-            TestSrc
+            TestSrc,
+
         }
     }
 
-    public class ElementNullException : YascBaseException
+    public class YascElementNullException : YascBaseException
     {
-        public ElementNullException(string msg) : base(msg)
+        public YascElementNullException(string msg) : base(msg)
         {
 
         }
 
-        public ElementNullException(Element element) : this(string.Format("Element {0} is null! ", element.Name)) { }
+        public YascElementNullException(Element element) : this(string.Format("Element {0} is null! ", element.Name)) { }
 
     }
 

@@ -47,12 +47,12 @@ namespace YetAnotherStreamingContol
         /// <summary>
         ///  Local device index (set to -2 for IP cameras... maybe...). 
         /// </summary>
-        public int DeviceIndex { get; set; }
+        public int DeviceIndex { get { return gstCam == null ? 0 : gstCam.DeviceIndex; } set { if (gstCam != null) gstCam.DeviceIndex = value; } }
 
         /// <summary>
         /// Full path including filename to save files. 
         /// </summary>
-        public string CapFilename { get { return gstCam?.CapFilename; } set { if (gstCam != null) gstCam.CapFilename = value; } }
+        public string CapFilename { get { return gstCam?.RecFilename; } set { if (gstCam != null) gstCam.RecFilename = value; } }
 
         /// <summary>
         /// Not used. 
@@ -102,6 +102,12 @@ namespace YetAnotherStreamingContol
             }
         }
 
+
+        /// <summary>
+        /// Allow double-clicks to make the window fullscreen. 
+        /// </summary>
+        public bool EnableFullscreenDblClick { get; set; } = true;
+
         /// <summary>
         /// TODO: Implement OSD objects
         /// </summary>
@@ -122,7 +128,8 @@ namespace YetAnotherStreamingContol
         public event EventHandler PreviewStopped;
         public event EventHandler RecordingStarted;
         public event EventHandler RecordingEnded;
-        public event EventHandler ErrorStreaming;
+        public event EventHandler<Exception> ErrorStreaming;
+        public event EventHandler<Image> SnapshotReady; 
         #endregion
 
         #region Methods
@@ -169,6 +176,10 @@ namespace YetAnotherStreamingContol
                 gstCam.PreviewStopped -= GstCam_PreviewStopped;
                 gstCam.PreviewStarted += GstCam_PreviewStarted;
                 gstCam.PreviewStopped += GstCam_PreviewStopped;
+                gstCam.ErrorStreaming -= GstCam_ErrorStreaming;
+                gstCam.ErrorStreaming += GstCam_ErrorStreaming;
+                gstCam.SnapshotReady -= GstCam_SnapshotReady;
+                gstCam.SnapshotReady += GstCam_SnapshotReady;
 
                 try
                 {
@@ -181,6 +192,21 @@ namespace YetAnotherStreamingContol
                     sysDbg.WriteLine(ex.Message); 
                 }
             }
+        }
+
+        public void TakeSnapshot()
+        {
+            if (gstCam != null) gstCam.TakeSnapshot(); 
+        }
+
+        private void GstCam_SnapshotReady(object sender, Image e)
+        {
+            this.SnapshotReady?.Invoke(this, e); 
+        }
+
+        private void GstCam_ErrorStreaming(object sender, Exception e)
+        {
+            this.ErrorStreaming?.Invoke(this, e);
         }
 
         public void StopPreview()
@@ -279,7 +305,7 @@ namespace YetAnotherStreamingContol
             {
                 //_log.Info("Showing fullscreen");
 
-                Screen screen = Screen.PrimaryScreen;
+                Screen screen = Screen.FromControl(this);
                 //Screen screen = Screen.FromControl(this);
                 // Setup host form to be full screen
                 host = new Form
@@ -310,7 +336,9 @@ namespace YetAnotherStreamingContol
                 //ctl.Dock = DockStyle.Fill;   
                 ctl.Dock = DockStyle.None;
                 ctl.Width = host.Width;
-                ctl.Height = host.Width / 16 * 9;
+                ctl.Height = host.Width / gstCam.CamWidth * gstCam.CamHeight;
+                //ctl.Width = host.Width;
+                //ctl.Height = host.Width / 16 * 9;
                 ctl.Location = new Point(0, (host.Height - ctl.Height) / 2);
                 //ctl.Location = new Point(screen.Bounds.Left, screen.Bounds.Top + (host.Height - ctl.Height) / 2);
 
@@ -368,11 +396,9 @@ namespace YetAnotherStreamingContol
         
         private void pnlPreview_DoubleClick(object sender, EventArgs e)
         {
-            Console.WriteLine("test double click.");
-
-            if (gstCam.EnableFullscreenDblClick)
+            if (this.EnableFullscreenDblClick)
             {
-                Console.WriteLine("Toggling fullscreen.");
+                sysDbg.WriteLine("Toggling fullscreen."); 
                 this.ToggleFullscreen();
             }
         }
