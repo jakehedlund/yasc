@@ -43,13 +43,13 @@
             this.btnBrowse = new System.Windows.Forms.Button();
             this.btnRecord = new System.Windows.Forms.Button();
             this.gbxOverlay = new System.Windows.Forms.GroupBox();
-            this.yascControl1 = new YetAnotherStreamingContol.YascControl();
             this.gbxSnapshot = new System.Windows.Forms.GroupBox();
             this.btnSnapshot = new System.Windows.Forms.Button();
             this.pbxSnapshot = new System.Windows.Forms.PictureBox();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.yascControl1 = new YetAnotherStreamingContol.YascControl();
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
@@ -226,28 +226,6 @@
             this.gbxOverlay.TabStop = false;
             this.gbxOverlay.Text = "Overlay";
             // 
-            // yascControl1
-            // 
-            this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.yascControl1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.yascControl1.CamType = YetAnotherStreamingContol.GstEnums.CamType.Local;
-            this.yascControl1.CapFilename = null;
-            this.yascControl1.CaptureFrameRate = 0;
-            this.yascControl1.Connected = false;
-            this.yascControl1.ConnectionUri = null;
-            this.yascControl1.DeviceIndex = 0;
-            this.yascControl1.EnableFullscreenDblClick = true;
-            this.yascControl1.Location = new System.Drawing.Point(12, 12);
-            this.yascControl1.Name = "yascControl1";
-            this.yascControl1.OverlayObjects = null;
-            this.yascControl1.Preview = false;
-            this.yascControl1.Size = new System.Drawing.Size(663, 381);
-            this.yascControl1.TabIndex = 3;
-            this.yascControl1.SnapshotReady += new System.EventHandler<System.Drawing.Image>(this.yascControl1_SnapshotReady);
-            this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
-            // 
             // gbxSnapshot
             // 
             this.gbxSnapshot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -296,6 +274,26 @@
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(31, 17);
             this.lblStatus.Text = "Status";
+            // 
+            // yascControl1
+            // 
+            this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.yascControl1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.yascControl1.CamType = YetAnotherStreamingContol.GstEnums.CamType.Local;
+            this.yascControl1.CapFilename = null;
+            this.yascControl1.CaptureFrameRate = 0;
+            this.yascControl1.Connected = false;
+            this.yascControl1.ConnectionUri = null;
+            this.yascControl1.DeviceIndex = 0;
+            this.yascControl1.Location = new System.Drawing.Point(12, 12);
+            this.yascControl1.Name = "yascControl1";
+            this.yascControl1.Preview = false;
+            this.yascControl1.Size = new System.Drawing.Size(663, 381);
+            this.yascControl1.TabIndex = 3;
+            this.yascControl1.SnapshotReady += new System.EventHandler<System.Drawing.Image>(this.yascControl1_SnapshotReady);
+            this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
             // 
             // Form1
             // 

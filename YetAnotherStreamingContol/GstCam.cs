@@ -43,19 +43,20 @@ namespace YetAnotherStreamingContol
         Pad padSrcBinSource, // Pad from source bin
             padTeeRec,       // Pad from record branch
             padTeeDisp,
-            padRecBinSink;
+            padRecBinSink,
+            padOverlay0; 
 
         // Source elements (RTSP). Use decodebin instead. 
         //Element mRtspSrc, mRtpDepay, mQueueDec, mDecode;
 
-        Element srcElt;
+        private Element srcElt;
 
         // Display elements
-        Element mQueueDisp, mDispSink, mConvert; 
+        private Element mQueueDisp, mDispSink, mConvert; 
 
         // "Accessories"
-        Element mOverlayLeft, mOverlayRight, mOverlayClock, mCaps, mTee;
-        
+        private Element mOverlayClock, mCaps, mTee;
+        private List<OsdObject> osdObjects;
 
         // Recording elements
         private Element mQueueRec, mEncx264, muxMp4, mFileSink, mSplitMuxSink;
@@ -92,6 +93,8 @@ namespace YetAnotherStreamingContol
         public int CamHeight { get; set; } = 720;
         public int CamWidth { get; set; } = 1280;
         public int Latency { get; set; } = 0;
+
+        public List<OsdObject> OverlayList { get { return osdObjects; } set { osdObjects = value; } }
 
         private CamType _type = CamType.Local; 
         public CamType CamType {
@@ -154,14 +157,15 @@ namespace YetAnotherStreamingContol
         public event EventHandler PreviewStarted;
         public event EventHandler PreviewStopped;
         public event EventHandler RecordingStarted;
-        public event EventHandler RecordingEnded;
-        public event EventHandler<Exception> ErrorStreaming;
+        public event EventHandler RecordingStopped;
+        public event EventHandler<YascStreamingException> ErrorStreaming;
         public event EventHandler<MessageArgs> GstStateChanged;
         public event EventHandler<System.Drawing.Image> SnapshotReady; 
         #endregion
 
         public GstCam()
         {
+            //OverlayList = new List<OsdObject>();
             //detectGstPath();
             //if (!pipelineCreated)
             //    SetupPipeline(); 
@@ -189,6 +193,9 @@ namespace YetAnotherStreamingContol
 
         }
 
+        /// <summary>
+        /// Start camera preview. 
+        /// </summary>
         public void StartPreview()
         {
             if (this.CameraState == CamState.Disconnected || this.CameraState == CamState.Stopped)
@@ -255,6 +262,9 @@ namespace YetAnotherStreamingContol
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public void StopPreviewClosing()
         {
             try
@@ -281,8 +291,9 @@ namespace YetAnotherStreamingContol
             if (mTee == null)
                 return false;
 
+            // Already recording; do nothing. 
             if (binRecord.CurrentState == State.Playing)
-                return false;
+                return true;
 
             var padTemplate = mTee.GetPadTemplate("src_%u");
             padTeeRec = mTee.RequestPad(padTemplate);
@@ -302,6 +313,10 @@ namespace YetAnotherStreamingContol
             return true;
         }
 
+        /// <summary>
+        /// Stop recording by unlinking the record bin (on a callback). 
+        /// </summary>
+        /// <returns></returns>
         public bool StopRecord()
         {
             sysDbg.WriteLine("Stop record.");
@@ -315,6 +330,9 @@ namespace YetAnotherStreamingContol
 
         }
 
+        /// <summary>
+        /// Take a snapshot. Attach a handler to the SnapshotReady event. 
+        /// </summary>
         public void TakeSnapshot()
         {
             if (!this.IsPreviewing)
@@ -361,9 +379,6 @@ namespace YetAnotherStreamingContol
                     // Create a new image, set the preview window, then save the JPG. 
                     MemoryStream ms = new MemoryStream(bytes);
                     Image img = Image.FromStream(ms);
-
-                    //if (SnapshotPreview != null)
-                    //    this.SnapshotPreview.Image = img;
 
                     //img.Save(Path.Combine(Option.GetSnapshotFullPath(), Option.GetSnapshotFileName(title)));
                     SnapshotReady?.Invoke(this, img);
@@ -438,12 +453,11 @@ namespace YetAnotherStreamingContol
         }
 
         /// <summary>
-        /// Setup the source bin. This method can be overridden by inheriting classes. 
+        /// Setup the source bin. This method can be overridden by inheriting classes for different sources. 
         /// </summary>
         /// <returns>true on success</returns>
         protected virtual bool SetupSourceBin()
         {
-            // Actual source element.
             bool ret = true;
 
             if (pipeline == null)
@@ -463,6 +477,7 @@ namespace YetAnotherStreamingContol
                 e.Unref();
             }
 
+            // Unlink from decodeBin.
             if(padSrcBinSource != null)
             {
                 padSrcBinSource.Unlink(binDecode.GetStaticPad("sink"));
@@ -567,7 +582,7 @@ namespace YetAnotherStreamingContol
             {
                 sysDbg.WriteLine("Error initing gst applicaiton: " + ex.Message);
             }
-
+            
             if (glibThread.ThreadState != sysThread.ThreadState.Running)
             {
                 glibThread.Start();
@@ -607,7 +622,7 @@ namespace YetAnotherStreamingContol
                 bus.Message += HandleMessage;
             }
             else
-                throw new YascElementNullException("Bus is null. "); 
+                throw new YascElementNullException("Bus is null. Failed to setup pipeline."); 
 
             pipeline.Add(binSource, binDecode); 
             SetupSourceBin();
@@ -643,6 +658,62 @@ namespace YetAnotherStreamingContol
         }
 
         /// <summary>
+        /// Add all of the overlay elements to the pipeline. 
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="inf"></param>
+        /// <returns></returns>
+        private PadProbeReturn cb_addOverlayElts(Pad p, PadProbeInfo inf)
+        {
+            Pad tPad = padOverlay0; 
+            Pad tPrev = tPad.Peer; // Previous src pad.
+            padOverlay0 = tPrev; 
+
+            if (!tPrev.Unlink(tPad))
+                sysDbg.WriteLine("Unlink failed.");
+
+            if (OverlayList != null)
+            {
+                foreach (var osd in OverlayList)
+                {
+
+                    if (osd.OverlayElement == null)
+                    {
+                        osd.OverlayElement = ElementFactory.Make("textoverlay");
+                        osd.RefreshElement();
+                    }
+                    else
+                        osd.RefreshElement();
+
+                    var elt = osd.OverlayElement;
+
+                    if (elt != null && elt.Parent == null)
+                    {
+                        pipeline.Add(elt);
+
+                        if (tPrev.Link(elt.GetStaticPad("video_sink")) != PadLinkReturn.Ok)
+                            sysDbg.WriteLine("Error linking overlay. ");
+
+                        //tPrev.Unref();
+                        tPrev = elt.GetStaticPad("src");
+                        if (!elt.SyncStateWithParent())
+                            sysDbg.WriteLine("Error syncing overlay state.");
+                    }
+                }
+            }
+
+            if(tPrev.Link(tPad) != PadLinkReturn.Ok)
+            {
+                sysDbg.WriteLine("Error linking tprev overlay."); 
+            }
+            padOverlay0 = padOverlay0.Peer; 
+            tPrev.Unref();
+            tPad.Unref(); 
+            DumpPipeline("After overlay add."); 
+            return PadProbeReturn.Remove; 
+        }
+
+        /// <summary>
         /// Fired after data starts flowing through pipeline and stream type is detected. 
         /// </summary>
         /// <param name="o"></param>
@@ -652,14 +723,31 @@ namespace YetAnotherStreamingContol
             sysDbg.WriteLine("Decode bin pad added.");
 
             var newPad = args.NewPad;
-            var ret = newPad.Link(mTee.GetStaticPad("sink"));
+            Pad nextPad; 
+
+            if (padOverlay0 == null)
+                nextPad = mTee.GetStaticPad("sink");
+            else
+                nextPad = padOverlay0; 
+
+            if(nextPad.IsLinked)
+            {
+                if (!nextPad.Peer.Unlink(nextPad))
+                    sysDbg.WriteLine("Failed to unlink."); 
+            }
+
+            var ret = newPad.Link(nextPad);
             if (ret != PadLinkReturn.Ok)
                 sysDbg.WriteLine("Error linking decode bin to tee: " + ret.ToString());
 
             //if (mQueueDisp.Link(mDispSink))
             //    sysDbg.WriteLine("Failed to link to dispsink. "); 
 
-            DumpPipeline("afterDecodeLink"); 
+
+            DumpPipeline("afterDecodeLink");
+            // Add overlay elements. 
+            padOverlay0 = nextPad; 
+            newPad.AddProbe(PadProbeType.Idle, cb_addOverlayElts);
         }
 
         /// <summary>

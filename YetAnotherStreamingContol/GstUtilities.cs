@@ -158,7 +158,7 @@ namespace YetAnotherStreamingContol
             Rtsp, 
             Mjpg,
             TestSrc,
-
+            FileSrc
         }
     }
 

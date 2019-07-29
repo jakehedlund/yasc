@@ -106,13 +106,35 @@ namespace YetAnotherStreamingContol
         /// <summary>
         /// Allow double-clicks to make the window fullscreen. 
         /// </summary>
+        [DefaultValue(true)]
         public bool EnableFullscreenDblClick { get; set; } = true;
 
         /// <summary>
-        /// TODO: Implement OSD objects
+        /// List of OsdObject. Must be populated before entering the playing state. 
+        /// The Text property can be modified at runtime/playtime as often as needed. 
         /// </summary>
-        public List<OsdObject> OverlayObjects {get; set; }
-        public string ConnectionUri { get
+        [Browsable(true)]
+        [DefaultValue(null)]
+        [Description("Add up to four text overlays. Or more at your own risk. ")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        public List<OsdObject> OverlayObjects
+        {
+            get { return gstCam?.OverlayList; }
+            set
+            {
+                if (gstCam != null) gstCam.OverlayList = value;
+            }
+        }
+
+        /// <summary>
+        /// The RTSP or MJPG connection URI. 
+        /// </summary>
+        [Description("The RTSP URI from where to stream.")]
+        [DefaultValue("rtsp://192.168.0.250:554/cam0_0")]
+        [Browsable(true)]
+        public string ConnectionUri
+        {
+            get
             {
                 return gstCam == null ? "" : gstCam.ConnectionUri; 
             }
@@ -128,7 +150,7 @@ namespace YetAnotherStreamingContol
         public event EventHandler PreviewStopped;
         public event EventHandler RecordingStarted;
         public event EventHandler RecordingEnded;
-        public event EventHandler<Exception> ErrorStreaming;
+        public event EventHandler<YascStreamingException> ErrorStreaming;
         public event EventHandler<Image> SnapshotReady; 
         #endregion
 
@@ -138,6 +160,26 @@ namespace YetAnotherStreamingContol
             InitializeComponent();
             gstCam = new GstCam();
 
+        }
+
+        /// <summary>
+        /// Create an RTSP streaming control. 
+        /// </summary>
+        /// <param name="connectionUri"></param>
+        public YascControl(Uri connectionUri) : this()
+        {
+            gstCam = new GstCam();
+            gstCam.ConnectionUri = connectionUri.ToString();
+        }
+
+        /// <summary>
+        /// Constructor for custom GstCam implementation. 
+        /// </summary>
+        /// <param name="gst"></param>
+        public YascControl(GstCam gst)
+        {
+            InitializeComponent();
+            gstCam = gst;
         }
 
         private void GstCam_PreviewStopped(object sender, EventArgs e)
@@ -150,15 +192,6 @@ namespace YetAnotherStreamingContol
             PreviewStarted?.Invoke(sender, e);
         }
 
-        /// <summary>
-        /// Create an RTSP streaming control. 
-        /// </summary>
-        /// <param name="connectionUri"></param>
-        public YascControl(Uri connectionUri) : this()
-        {
-            gstCam = new GstCam();
-            gstCam.ConnectionUri = connectionUri.ToString();
-        }
 
         public object GetUnderlyingObject()
         {
@@ -204,7 +237,7 @@ namespace YetAnotherStreamingContol
             this.SnapshotReady?.Invoke(this, e); 
         }
 
-        private void GstCam_ErrorStreaming(object sender, Exception e)
+        private void GstCam_ErrorStreaming(object sender, YascStreamingException e)
         {
             this.ErrorStreaming?.Invoke(this, e);
         }
@@ -238,7 +271,16 @@ namespace YetAnotherStreamingContol
 
         }
 
-        public void UpdateOsd(string text, int idx) { }
+        public void UpdateOsd(string text, int idx)
+        {
+            if(OverlayObjects != null)
+            {
+                if(idx < OverlayObjects.Count)
+                {
+                    OverlayObjects[idx].Text = text;
+                }
+            }
+        }
         #endregion
 
         #region PrivateMethods
@@ -303,8 +345,6 @@ namespace YetAnotherStreamingContol
 
             if (!gstCam.IsFullscreen)
             {
-                //_log.Info("Showing fullscreen");
-
                 Screen screen = Screen.FromControl(this);
                 //Screen screen = Screen.FromControl(this);
                 // Setup host form to be full screen
@@ -336,7 +376,7 @@ namespace YetAnotherStreamingContol
                 //ctl.Dock = DockStyle.Fill;   
                 ctl.Dock = DockStyle.None;
                 ctl.Width = host.Width;
-                ctl.Height = host.Width / gstCam.CamWidth * gstCam.CamHeight;
+                ctl.Height = (int)(host.Width * gstCam.CamHeight / (double)gstCam.CamWidth);
                 //ctl.Width = host.Width;
                 //ctl.Height = host.Width / 16 * 9;
                 ctl.Location = new Point(0, (host.Height - ctl.Height) / 2);

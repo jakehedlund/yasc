@@ -19,21 +19,21 @@ Initial release supports h.264 and MJPG via RTSP (anything decodebin can handle)
   * Fast (GStreamer is written entirely in C). 
   * Extensible and flexible backend.
   * And more... 
-* Planned: 
-  * WPF support. 
-  * Recording stitching (pause/resume recordings). 
-  * Audio previewing (and recording).
-  * PIP (picture-in-picture). 
-  * Multicast streaming source support.
-  * 64-bit support. 
-  * Separate preview and record streams (lower quality preview, HD recording).
-  * Separate/different preview and record overlays. 
-  * Subtitle overlays (raw stream without overlay, rendered by player [e.g. VLC] as subtitles). 
-  * Better flexibility for different pipelines and stream formats. 
-  * Framerate manipulation (e.g. drop every other frame).
-  * Graphical overlays (cairooverlay or rsvgoverlay).
-  * Merge modules included? (eliminate external gst dependency). 
-  * RTSP server support (re-streaming).
+* Planned:
+  - [ ] WPF support. 
+  - [ ] Recording stitching (pause/resume recordings). 
+  - [ ] Audio previewing (and recording).
+  - [ ] PIP (picture-in-picture). 
+  - [ ] Multicast streaming source support. (multiple clients using multicast URI)
+  - [ ] 64-bit support. 
+  - [ ] Separate preview and record streams (lower quality preview, HD recording).
+  - [ ] Separate/different preview and record overlays. 
+  - [ ] Subtitle overlays (raw stream without overlay, rendered by player [e.g. VLC] as subtitles). 
+  - [ ] Better flexibility for different pipelines and stream formats. 
+  - [ ] Framerate manipulation (e.g. drop every other frame).
+  - [ ] Graphical overlays (cairooverlay or rsvgoverlay).
+  - [ ] Merge modules included? (eliminate external gst dependency). 
+  - [ ] RTSP server support (re-streaming).
   
 As this is a relatively simple wrapper around the great GStreamer, many more features are possible and easily implementable. Behind the scenes, a gst Pipeline is created and manipulated to render the preview source and all the other operations. Therefore, this can be used as a comprehensive C# example program for GStreamer. 
   
@@ -59,7 +59,7 @@ I could not for the life of me find a low-latency, self-contained, low-cost plug
 * Text overlays (graphical is a plus), updateable at 1Hz or better.
 * Handles RTSP at 720p or above. 
 * Able to record to disk and grab frames (snapshot). 
-* Works easily in C# (existing app constraint). 
+* Works relatively easily in C# WinForms (existing app constraint). 
 * Not outrageously expensive for something that may or may not work.
 * Decent framerate (30 fps ideal).
 

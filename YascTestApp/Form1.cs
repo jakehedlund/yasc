@@ -14,7 +14,9 @@ namespace YascTestApp
     public partial class Form1 : Form
     {
 
-        Form prevForm; 
+        Form prevForm;
+
+        public bool IsClosing { get; private set; }
 
         public Form1()
         {
@@ -23,6 +25,11 @@ namespace YascTestApp
             yascControl1.PreviewStarted += YascControl1_PreviewStarted;
             yascControl1.PreviewStopped += YascControl1_PreviewStopped;
             yascControl1.RecordingStarted += YascControl1_RecordingStarted;
+
+            //yascControl1.OverlayObjects = new List<OsdObject>();
+
+            //yascControl1.OverlayObjects.Add(new OsdObject("Test", "Arial", 13) { HorizontalAlignment = GstEnums.TextOverlayHAlign.HALIGN_LEFT });
+            //yascControl1.OverlayObjects.Add(new OsdObject("Test222", "Arial", 13) { HorizontalAlignment = GstEnums.TextOverlayHAlign.HALIGN_RIGHT, VerticalAlignment = GstEnums.TextOverlayVAlign.VALIGN_TOP });
         }
 
         private void YascControl1_PreviewStopped(object sender, EventArgs e)
@@ -50,6 +57,9 @@ namespace YascTestApp
 
         private void enableControls(bool en)
         {
+            if (IsClosing || this.Disposing || this.IsDisposed)
+                return;
+
             if(this.InvokeRequired)
             {
                 this.Invoke(new Action<bool>(enableControls), en);
@@ -70,23 +80,18 @@ namespace YascTestApp
         /// <param name="newStatus"></param>
         private void SetStatusText(string newStatus)
         {
-            if (this.IsDisposed) return;
+            try
+            {
+                if (this.IsDisposed) return;
+                if (IsClosing) return;
 
-            if(!this.Disposing)
-                lblStatus.Text = newStatus;
-            //if (lblStatus.InvokeRequired)
-            //{
-            //    try
-            //    {
-            //        this.Invoke(new Action<string>(SetStatusText), newStatus);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        Console.WriteLine("error updating lable"); 
-            //    }
-            //}
-            //else
-            //    lblStatus.Text = newStatus; 
+                if (!this.Disposing)
+                    lblStatus.Text = newStatus;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error setting status: " + ex.Message);
+            }
         }
 
         private void btnStop_Click(object sender, EventArgs e)
@@ -186,7 +191,8 @@ namespace YascTestApp
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            yascControl1.StopPreview(); 
+            this.IsClosing = true;
+            yascControl1.StopPreview();
         }
 
         private void yascControl1_SnapshotReady(object sender, Image e)
