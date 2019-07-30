@@ -1,4 +1,4 @@
-# yasc (beta)
+# yasc (beta) [![paypal](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UCK87CLYLLRF2&currency_code=USD)
 Yet Another Streaming Control
 
 ## About
@@ -74,3 +74,5 @@ I'm sure there are many better ways to do things; please shoot me a message and/
 
 ## Acknowledgements
 Thanks to the GStreamer team and everyone smarter than me who puts in the effort to make great software that I can barely understand enough to use. 
+
+[![paypal](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UCK87CLYLLRF2&currency_code=USD)
