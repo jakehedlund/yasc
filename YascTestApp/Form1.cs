@@ -7,7 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using YetAnotherStreamingContol;
+using sysDbg = System.Diagnostics.Debug;
+using Yasc;
 
 namespace YascTestApp
 {
@@ -182,6 +183,11 @@ namespace YascTestApp
             string path = Properties.Settings.Default.LastPath;
             if (!string.IsNullOrEmpty(path))
                 yascControl1.CapFilename = path; 
+
+            foreach(var osd in yascControl1.OverlayObjects)
+            {
+                flpOsd.Controls.Add(new OsdTextSettings(osd));
+            }
         }
 
         private void cmbUri_SelectedIndexChanged(object sender, EventArgs e)
@@ -238,6 +244,42 @@ namespace YascTestApp
         private void nudTestSrc_ValueChanged(object sender, EventArgs e)
         {
             yascControl1.DeviceIndex = (int)nudTestSrc.Value; 
+        }
+
+        private void btnAddOsd_Click(object sender, EventArgs e)
+        {
+            if(yascControl1 != null)
+            {
+                var c = new OsdTextSettings("test"); 
+                if(yascControl1.OverlayObjects!=null)
+                {
+                    yascControl1.OverlayObjects.Add(c.OsdObject);
+                    flpOsd.Controls.Add(c); 
+                }
+                else
+                {
+                    c.Dispose(); 
+                }
+            }
+        }
+
+        private void btnRemoveOsd_Click(object sender, EventArgs e)
+        {
+            if (flpOsd.Controls.Count > 0)
+            {
+                try
+                {
+                    var c = (OsdTextSettings)flpOsd.Controls[flpOsd.Controls.Count - 1];
+                    yascControl1.OverlayObjects.Remove(c.OsdObject);
+                    flpOsd.Controls.Remove(c);
+                    c.Dispose(); 
+                }
+                catch(Exception ex)
+                {
+                    sysDbg.WriteLine("Error removing OSD object: " + ex.Message);
+                }
+            }
+
         }
     }
 }

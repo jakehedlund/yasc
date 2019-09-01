@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Gst; 
 
-namespace YetAnotherStreamingContol
+namespace Yasc
 {
     public class GstUtilities
     {
@@ -148,7 +148,7 @@ namespace YetAnotherStreamingContol
             Pending,
             Connected, 
             Previewing, 
-            Recording,
+            Recording, 
             Stopped
         }
 

@@ -8,11 +8,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using sysDbg = System.Diagnostics.Debug;
-using static YetAnotherStreamingContol.GstEnums;
+using static Yasc.GstEnums;
 using System.Drawing;
 using System.IO;
 
-namespace YetAnotherStreamingContol
+namespace Yasc
 {
     public class YascControl : UserControl
     {
@@ -114,7 +114,6 @@ namespace YetAnotherStreamingContol
         /// The Text property can be modified at runtime/playtime as often as needed. 
         /// </summary>
         [Browsable(true)]
-        [DefaultValue(null)]
         [Description("Add up to four text overlays. Or more at your own risk. ")]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public List<OsdObject> OverlayObjects
@@ -155,10 +154,8 @@ namespace YetAnotherStreamingContol
         #endregion
 
         #region Methods
-        public YascControl()
+        public YascControl() : this(new GstCam())
         {
-            InitializeComponent();
-            gstCam = new GstCam();
 
         }
 
@@ -168,7 +165,6 @@ namespace YetAnotherStreamingContol
         /// <param name="connectionUri"></param>
         public YascControl(Uri connectionUri) : this()
         {
-            gstCam = new GstCam();
             gstCam.ConnectionUri = connectionUri.ToString();
         }
 
@@ -180,6 +176,7 @@ namespace YetAnotherStreamingContol
         {
             InitializeComponent();
             gstCam = gst;
+            OverlayObjects = new List<OsdObject>(); 
         }
 
         private void GstCam_PreviewStopped(object sender, EventArgs e)
@@ -263,7 +260,7 @@ namespace YetAnotherStreamingContol
 
         public void UpdateOsd(string formattedText)
         {
-            
+            UpdateOsd(formattedText, 0);
         }
 
         public void UpdateOsd(OsdObject osdobj)
@@ -271,14 +268,16 @@ namespace YetAnotherStreamingContol
 
         }
 
-        public void UpdateOsd(string text, int idx)
+        public void UpdateOsd(string formattedText, int idx)
         {
             if(OverlayObjects != null)
             {
-                if(idx < OverlayObjects.Count)
+                if (idx > 0 && idx < OverlayObjects.Count)
                 {
-                    OverlayObjects[idx].Text = text;
+                    OverlayObjects[idx].Text = formattedText;
                 }
+                else
+                    throw new YascElementNullException("Invalid index given."); 
             }
         }
         #endregion
@@ -316,7 +315,7 @@ namespace YetAnotherStreamingContol
             // 
             // YascControl
             // 
-            this.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.BackColor = System.Drawing.SystemColors.Desktop;
             this.Controls.Add(this.pnlPreview);
             this.Name = "YascControl";
             this.Size = new System.Drawing.Size(570, 341);
@@ -346,20 +345,17 @@ namespace YetAnotherStreamingContol
             if (!gstCam.IsFullscreen)
             {
                 Screen screen = Screen.FromControl(this);
-                //Screen screen = Screen.FromControl(this);
+
                 // Setup host form to be full screen
                 host = new Form
                 {
                     FormBorderStyle = FormBorderStyle.None,
-                    //Width = Screen.PrimaryScreen.Bounds.Width,
-                    //Height = Screen.PrimaryScreen.Bounds.Height,
                     Width = screen.Bounds.Width,
                     Height = screen.Bounds.Height,
                     BackColor = Color.Black,
                     ShowInTaskbar = false,
                     StartPosition = FormStartPosition.Manual
                 };
-                //host.WindowState = FormWindowState.Maximized;
 
                 // Save properties of control
                 Point loc = ctl.Location;
@@ -372,15 +368,12 @@ namespace YetAnotherStreamingContol
                 while (!(form is Form)) form = form.Parent;
                 // Move control to host
                 ctl.Parent = host;
-                //ctl.Location = Point.Empty;            
-                //ctl.Dock = DockStyle.Fill;   
                 ctl.Dock = DockStyle.None;
                 ctl.Width = host.Width;
                 ctl.Height = (int)(host.Width * gstCam.CamHeight / (double)gstCam.CamWidth);
                 //ctl.Width = host.Width;
                 //ctl.Height = host.Width / 16 * 9;
                 ctl.Location = new Point(0, (host.Height - ctl.Height) / 2);
-                //ctl.Location = new Point(screen.Bounds.Left, screen.Bounds.Top + (host.Height - ctl.Height) / 2);
 
                 // Setup event handler to restore control back to form
                 host.FormClosing += delegate
@@ -390,12 +383,10 @@ namespace YetAnotherStreamingContol
                     ctl.Width = width;
                     ctl.Height = height;
                     ctl.Location = loc;
-                    //form.Show();
                     gstCam.IsFullscreen = false;
                     ctl.DoubleClick -= pnlPreview_DoubleClick;
                     ctl.DoubleClick += pnlPreview_DoubleClick;
-
-                    //_log.Info("Leaving fullscreen");
+                    
                 };
 
                 // Exit full screen with escape key
@@ -412,10 +403,8 @@ namespace YetAnotherStreamingContol
                 {
                     host.Close();
                 };
-
-
+                
                 // Go full screen
-                //form.Hide(); // Disabled because OSD won't get update if form is not visible.
                 host.Show();
                 host.TopMost = true;
                 ctl.MouseDoubleClick -= pnlPreview_DoubleClick;
@@ -428,9 +417,14 @@ namespace YetAnotherStreamingContol
             }
         }
         
-        public void DumpGraph(string name, string path = @"C:\gstreamer\dotfiles")
+        /// <summary>
+        /// Generate a .dot graph file representative of the current pipeline, viewable in a program like GVEdit. 
+        /// </summary>
+        /// <param name="fname">File name.</param>
+        /// <param name="path">File path.</param>
+        public void DumpGraph(string fname, string path = @"C:\gstreamer\dotfiles")
         {
-            gstCam?.DumpPipeline(Path.Combine(path, name));
+            gstCam?.DumpPipeline(Path.Combine(path, fname));
         }
         #endregion
         

@@ -7,7 +7,7 @@ using System.Text;
 using sysThread = System.Threading;
 using sysDbg = System.Diagnostics.Debug;
 using System.Threading.Tasks;
-using static YetAnotherStreamingContol.GstEnums;
+using static Yasc.GstEnums;
 using Gst;
 using System.Drawing;
 using System.IO;
@@ -15,10 +15,9 @@ using System.IO;
 /*
  * Dependencies: GstSharp (gstreamer-sharp, glib-sharp, gio-sharp).  
  * Basic camera object containing the Gst pipeline. One pipeline per GstCam. YascControl can have multiple GstCams for e.g. a preview stream and record stream.  
- * */
-
-
-namespace YetAnotherStreamingContol
+ * 
+ */
+namespace Yasc
 {
     /// <summary>
     /// A GstCam is the base class for a streaming camera. It can have any type of streaming source (USB, RTSP, MJPG, etc.) and any 
@@ -56,7 +55,7 @@ namespace YetAnotherStreamingContol
 
         // "Accessories"
         private Element mOverlayClock, mCaps, mTee;
-        private List<OsdObject> osdObjects;
+        private List<OsdObject> _osdObjects;
 
         // Recording elements
         private Element mQueueRec, mEncx264, muxMp4, mFileSink, mSplitMuxSink;
@@ -74,19 +73,49 @@ namespace YetAnotherStreamingContol
         /// </summary>
         public string ConnectionUri {
             get;
-            set; }
+            set;
+        }
 
         /// <summary>
         /// File name (including path) to which record. 
         /// </summary>
-        public string RecFilename { get; set; } = "";
+        public string RecFilename
+        {
+            get {
+                if (mSplitMuxSink != null)
+                    return mSplitMuxSink["location"] as string;
+                else
+                    return _recFname;
+            }
+            set
+            {
+                _recFname = value;
+                if (mSplitMuxSink != null)
+                {
+                    mSplitMuxSink["location"] = value;
+                }
+            }
+
+        }
+        private string _recFname = "";
         /// <summary>
         /// For local cameras only, the index of the device. 
         /// </summary>
         public int DeviceIndex { get; set; }
 
-        public int VideoSplitTimeS { get; set; }
-        public int VideoSplitSizeMb { get; set; }
+        /// <summary>
+        /// Split video using the SplitMuxSink. Not always precise. 
+        /// </summary>
+        public int VideoSplitTimeS { get; set; } = 1800;
+
+        /// <summary>
+        /// Split video using the SplitMuxSink. Not always precise. 
+        /// </summary>
+        public int VideoSplitSizeMb { get; set; } = 500;
+
+        /// <summary>
+        /// Always true (for now). 
+        /// </summary>
         public bool SplitRecordedVideo { get; set; } = true;
 
         // Local camera height/width used by the caps filter to select the correct output. 
@@ -94,7 +123,7 @@ namespace YetAnotherStreamingContol
         public int CamWidth { get; set; } = 1280;
         public int Latency { get; set; } = 0;
 
-        public List<OsdObject> OverlayList { get { return osdObjects; } set { osdObjects = value; } }
+        public List<OsdObject> OverlayList { get { return _osdObjects; } set { _osdObjects = value; } }
 
         private CamType _type = CamType.Local; 
         public CamType CamType {
@@ -115,7 +144,8 @@ namespace YetAnotherStreamingContol
                 //{
 
                 //}
-            } private set {
+            }
+            private set {
                 var prev = _camState;
                 switch (value)
                 {
@@ -148,6 +178,7 @@ namespace YetAnotherStreamingContol
 
         /// <summary>
         /// TODO: Implement this - Continue recording on the previous saved video file. 
+        /// (hint: use segments but you have to find wait for the next keyframe to avoid the long frozen frame). 
         /// </summary>
         public bool StitchVideos { get { return false; } set { throw new NotImplementedException(); } }
 
@@ -160,15 +191,18 @@ namespace YetAnotherStreamingContol
         public event EventHandler RecordingStopped;
         public event EventHandler<YascStreamingException> ErrorStreaming;
         public event EventHandler<MessageArgs> GstStateChanged;
-        public event EventHandler<System.Drawing.Image> SnapshotReady; 
+        public event EventHandler<System.Drawing.Image> SnapshotReady;
+        public event EventHandler RawGstMessage;
         #endregion
 
         public GstCam()
         {
-            //OverlayList = new List<OsdObject>();
-            //detectGstPath();
+            OverlayList = new List<OsdObject>();
+
             //if (!pipelineCreated)
             //    SetupPipeline(); 
+
+            //osdObjects = new List<OsdObject>(); 
         }
 
         /// <summary>
@@ -187,10 +221,10 @@ namespace YetAnotherStreamingContol
                 throw new YascBaseException("Couldn't locate a GStreamer installation. Please check your environment variable GSTREAMER_1_0_ROOT_X86 and install the x86 version of GStreamer.");
 
             var path = Environment.GetEnvironmentVariable("Path");
+
+            // GStreamer uses the Path variable to find itself. 
             if (!path.StartsWith(pathGst))
                 Environment.SetEnvironmentVariable("Path", pathGst + ";" + path);
-
-
         }
 
         /// <summary>
@@ -226,9 +260,7 @@ namespace YetAnotherStreamingContol
             }
             else
             {
-                sysDbg.WriteLine("Started preview...");
-                //this.CameraState = CamState.Previewing;
-                //PreviewStarted?.Invoke(this, new EventArgs()); 
+                sysDbg.WriteLine("Starting preview...");
             }
 
             GstUtilities.DumpGraph(pipeline, "startPreview");
@@ -430,6 +462,7 @@ namespace YetAnotherStreamingContol
             catch (Exception ex)
             {
                 sysDbg.WriteLine("Error connecting: " + ex.Message);
+                throw new YascStreamingException("Error initializing pipeline. "); 
             }
             if (r)
                 CameraState = CamState.Connected; 
@@ -600,7 +633,6 @@ namespace YetAnotherStreamingContol
                 GstUtilities.CheckError(binRecord);
                 binDecode = (Bin)ElementFactory.Make("decodebin");
                 GstUtilities.CheckError(binDecode);
-
             }
             catch (Exception ex)
             {
@@ -657,6 +689,7 @@ namespace YetAnotherStreamingContol
             return true;
         }
 
+        #region Callbacks
         /// <summary>
         /// Add all of the overlay elements to the pipeline. 
         /// </summary>
@@ -665,8 +698,10 @@ namespace YetAnotherStreamingContol
         /// <returns></returns>
         private PadProbeReturn cb_addOverlayElts(Pad p, PadProbeInfo inf)
         {
+            // tPad is the sink of the Tee element. Therefore tPrev should be the decodeBin src elt. 
             Pad tPad = padOverlay0; 
-            Pad tPrev = tPad.Peer; // Previous src pad.
+            Pad tPrev = tPad.Peer; // Previous src pad and tail of linked-list.
+            // The start of the chain of overlays elts. 
             padOverlay0 = tPrev; 
 
             if (!tPrev.Unlink(tPad))
@@ -676,14 +711,16 @@ namespace YetAnotherStreamingContol
             {
                 foreach (var osd in OverlayList)
                 {
-
+                    // Don't recreate the Elts. 
                     if (osd.OverlayElement == null)
                     {
                         osd.OverlayElement = ElementFactory.Make("textoverlay");
                         osd.RefreshElement();
                     }
                     else
+                    {
                         osd.RefreshElement();
+                    }
 
                     var elt = osd.OverlayElement;
 
@@ -779,93 +816,6 @@ namespace YetAnotherStreamingContol
                     sysDbg.WriteLine("Error linking to decbin " + ret.ToString());
             }
             DumpPipeline("afterRtspLink");
-        }
-
-        protected void SetupRecordBinMp4()
-        {
-            // Create elements
-            mEncx264 = ElementFactory.Make("x264enc", "enc0");
-            GstUtilities.CheckError(mEncx264);
-            //muxMp4 = ElementFactory.Make("mp4mux", "mux0");
-            //GstUtilities.CheckError(muxMp4);
-
-            //mFileSink = ElementFactory.Make("filesink", "fsink0");
-            mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitsink0");
-            GstUtilities.CheckError(mSplitMuxSink); 
-
-            mQueueRec = ElementFactory.Make("queue", "qRec");
-
-            // Add to bin. 
-            binRecord.Add(mQueueRec, mEncx264, mSplitMuxSink);
-
-            padRecBinSink = new GhostPad("sink", mQueueRec.GetStaticPad("sink"));
-            binRecord.AddPad(padRecBinSink);
-            //mPipeline.Add(mEncx264, mQueue2, mMux, mFileSink);
-
-            // Configure elements.
-            mEncx264["sliced-threads"] = true;
-            mEncx264["tune"] = 4;
-            mEncx264["speed-preset"] = 1;
-            mEncx264["bitrate"] = (uint)10000000;
-
-            //muxMp4["faststart"] = true;
-
-            //mFileSink["location"] = this.CapFilename;
-            //mFileSink["async"] = true;
-
-            mSplitMuxSink["location"] = this.RecFilename;
-            mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
-            mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB   
-
-
-            mQueueRec["leaky"] = 2;
-            mQueueDisp["leaky"] = 2;
-
-
-            // Link elements (inside bin)
-            if (!Element.Link(mQueueRec, mEncx264, mSplitMuxSink))
-                Console.WriteLine("Error linking recording pipeline.");
-
-            pipeline.MessageForward = true;
-
-        }
-
-        /// <summary>
-        /// Create the tail elements for rendering. 
-        /// </summary>
-        /// <returns>true on success</returns>
-        protected bool CreateElements()
-        {
-            sysDbg.WriteLine("Creating elements...");
-
-            try
-            {
-                if (mDispSink == null)
-                    mDispSink = ElementFactory.Make("autovideosink", "videosink0");
-                GstUtilities.CheckError(mDispSink);
-
-                mDispSink["sync"] = false;
-
-                if (mQueueDisp == null)
-                    mQueueDisp = ElementFactory.Make("queue", "qDisp");
-                GstUtilities.CheckError(mQueueDisp);
-
-                if (mConvert == null)
-                    mConvert = ElementFactory.Make("videoconvert", "conv0");
-                GstUtilities.CheckError(mConvert);
-
-                if(mTee == null) 
-                    mTee = ElementFactory.Make("tee", "tee0");
-                GstUtilities.CheckError(mTee); 
-            }
-            catch (Exception ex)
-            {
-                sysDbg.WriteLine("Error creating elements: " + ex.Message);
-                return false;
-            }
-
-
-            return true;
         }
 
         /// <summary>
@@ -979,8 +929,11 @@ namespace YetAnotherStreamingContol
                             //this.PreviewStopped?.Invoke(this, new EventArgs()); 
                             break;
                     }
+
+                    GstStateChanged?.Invoke(sender, args);
+
                     break;
-                // !!!!! Important !!!!!
+                // !!!!! Important !!!!! Need to end recording cleanly to writeout headers. 
                 case MessageType.Element:
                     var structure = msg.Structure;
 
@@ -1036,8 +989,7 @@ namespace YetAnotherStreamingContol
                     break;
             }
             args.RetVal = true;
-
-            if (this.GstStateChanged != null) GstStateChanged(sender, args);
+            RawGstMessage?.Invoke(sender, args);
         }
 
         /// <summary>
@@ -1066,12 +1018,12 @@ namespace YetAnotherStreamingContol
         {
             //GLib.GException err;
             //string debug;
-            var msg = (Message)args.Args[0];
-            string msgInfo;
+            //var msg = (Message)args.Args[0];
+            //string msgInfo;
 
-            IntPtr gInfo;
+            //IntPtr gInfo;
 
-            msg.ParseInfo(out gInfo, out msgInfo);
+            //msg.ParseInfo(out gInfo, out msgInfo);
         }
 
         /// <summary>
@@ -1127,7 +1079,7 @@ namespace YetAnotherStreamingContol
 
                 if (SplitRecordedVideo && mSplitMuxSink != null)
                 {
-                    mSplitMuxSink["location"] = RecFilename;
+                    mSplitMuxSink["location"] = _recFname;
                     mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
                     mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB                                                               //mSplitMuxSink["async-handling"] = true;
                 }
@@ -1211,6 +1163,8 @@ namespace YetAnotherStreamingContol
 
         }
 
+        #endregion
+
         /// <summary>
         /// Remove the recording bin to stop recording. Very important that this is done _after_ the mux finishes the file. 
         /// </summary>
@@ -1226,6 +1180,98 @@ namespace YetAnotherStreamingContol
             else
                 sysDbg.WriteLine("Record bin removed successfully.");
         }
+
+
+        /// <summary>
+        /// Create the Bin for all the recording elements so starting/stopping the recording becomes easy (add/remove Bin as needed). 
+        /// </summary>
+        protected void SetupRecordBinMp4()
+        {
+            // Create elements
+            mEncx264 = ElementFactory.Make("x264enc", "enc0");
+            GstUtilities.CheckError(mEncx264);
+            //muxMp4 = ElementFactory.Make("mp4mux", "mux0");
+            //GstUtilities.CheckError(muxMp4);
+
+            //mFileSink = ElementFactory.Make("filesink", "fsink0");
+            mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitsink0");
+            GstUtilities.CheckError(mSplitMuxSink);
+
+            mQueueRec = ElementFactory.Make("queue", "qRec");
+
+            // Add to bin. 
+            binRecord.Add(mQueueRec, mEncx264, mSplitMuxSink);
+
+            padRecBinSink = new GhostPad("sink", mQueueRec.GetStaticPad("sink"));
+            binRecord.AddPad(padRecBinSink);
+            //mPipeline.Add(mEncx264, mQueue2, mMux, mFileSink);
+
+            // Configure elements.
+            mEncx264["sliced-threads"] = true;
+            mEncx264["tune"] = 4;
+            mEncx264["speed-preset"] = 1;
+            mEncx264["bitrate"] = (uint)10000000;
+
+            //muxMp4["faststart"] = true;
+
+            //mFileSink["location"] = this.CapFilename;
+            //mFileSink["async"] = true;
+
+            mSplitMuxSink["location"] = _recFname;
+            mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
+            mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB   
+
+
+            mQueueRec["leaky"] = 2;
+            mQueueDisp["leaky"] = 2;
+
+
+            // Link elements (inside bin)
+            if (!Element.Link(mQueueRec, mEncx264, mSplitMuxSink))
+                Console.WriteLine("Error linking recording pipeline.");
+
+            pipeline.MessageForward = true;
+
+        }
+
+        /// <summary>
+        /// Create the elements for rendering preview.
+        /// </summary>
+        /// <returns>true on success</returns>
+        protected bool CreateElements()
+        {
+            sysDbg.WriteLine("Creating elements...");
+
+            try
+            {
+                if (mDispSink == null)
+                    mDispSink = ElementFactory.Make("autovideosink", "videosink0");
+                GstUtilities.CheckError(mDispSink);
+
+                mDispSink["sync"] = false;
+
+                if (mQueueDisp == null)
+                    mQueueDisp = ElementFactory.Make("queue", "qDisp");
+                GstUtilities.CheckError(mQueueDisp);
+
+                if (mConvert == null)
+                    mConvert = ElementFactory.Make("videoconvert", "conv0");
+                GstUtilities.CheckError(mConvert);
+
+                if (mTee == null)
+                    mTee = ElementFactory.Make("tee", "tee0");
+                GstUtilities.CheckError(mTee);
+            }
+            catch (Exception ex)
+            {
+                sysDbg.WriteLine("Error creating elements: " + ex.Message);
+                return false;
+            }
+
+
+            return true;
+        }
+
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls

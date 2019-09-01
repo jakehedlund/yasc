@@ -29,6 +29,8 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            Yasc.OsdObject osdObject17 = new Yasc.OsdObject();
+            Yasc.OsdObject osdObject18 = new Yasc.OsdObject();
             this.btnStart = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
             this.rbtnLocal = new System.Windows.Forms.RadioButton();
@@ -43,17 +45,21 @@
             this.btnBrowse = new System.Windows.Forms.Button();
             this.btnRecord = new System.Windows.Forms.Button();
             this.gbxOverlay = new System.Windows.Forms.GroupBox();
+            this.btnRemoveOsd = new System.Windows.Forms.Button();
+            this.flpOsd = new System.Windows.Forms.FlowLayoutPanel();
             this.gbxSnapshot = new System.Windows.Forms.GroupBox();
             this.btnSnapshot = new System.Windows.Forms.Button();
             this.pbxSnapshot = new System.Windows.Forms.PictureBox();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.yascControl1 = new YetAnotherStreamingContol.YascControl();
+            this.btnAddOsd = new System.Windows.Forms.Button();
+            this.yascControl1 = new Yasc.YascControl();
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
             this.gbxControl.SuspendLayout();
+            this.gbxOverlay.SuspendLayout();
             this.gbxSnapshot.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbxSnapshot)).BeginInit();
             this.statusStrip1.SuspendLayout();
@@ -63,7 +69,7 @@
             // 
             this.btnStart.Location = new System.Drawing.Point(6, 17);
             this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(75, 23);
+            this.btnStart.Size = new System.Drawing.Size(119, 23);
             this.btnStart.TabIndex = 1;
             this.btnStart.Text = "Start";
             this.btnStart.UseVisualStyleBackColor = true;
@@ -71,9 +77,9 @@
             // 
             // btnStop
             // 
-            this.btnStop.Location = new System.Drawing.Point(6, 46);
+            this.btnStop.Location = new System.Drawing.Point(6, 42);
             this.btnStop.Name = "btnStop";
-            this.btnStop.Size = new System.Drawing.Size(75, 23);
+            this.btnStop.Size = new System.Drawing.Size(119, 23);
             this.btnStop.TabIndex = 1;
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
@@ -188,18 +194,18 @@
             this.gbxControl.Controls.Add(this.btnRecord);
             this.gbxControl.Controls.Add(this.btnStop);
             this.gbxControl.Controls.Add(this.btnStart);
-            this.gbxControl.Location = new System.Drawing.Point(695, 12);
+            this.gbxControl.Location = new System.Drawing.Point(681, 12);
             this.gbxControl.Name = "gbxControl";
-            this.gbxControl.Size = new System.Drawing.Size(111, 163);
+            this.gbxControl.Size = new System.Drawing.Size(134, 132);
             this.gbxControl.TabIndex = 6;
             this.gbxControl.TabStop = false;
             this.gbxControl.Text = "Controls";
             // 
             // btnBrowse
             // 
-            this.btnBrowse.Location = new System.Drawing.Point(6, 127);
+            this.btnBrowse.Location = new System.Drawing.Point(6, 99);
             this.btnBrowse.Name = "btnBrowse";
-            this.btnBrowse.Size = new System.Drawing.Size(75, 23);
+            this.btnBrowse.Size = new System.Drawing.Size(119, 23);
             this.btnBrowse.TabIndex = 4;
             this.btnBrowse.Text = "Browse...";
             this.btnBrowse.UseVisualStyleBackColor = true;
@@ -207,9 +213,9 @@
             // 
             // btnRecord
             // 
-            this.btnRecord.Location = new System.Drawing.Point(7, 98);
+            this.btnRecord.Location = new System.Drawing.Point(6, 73);
             this.btnRecord.Name = "btnRecord";
-            this.btnRecord.Size = new System.Drawing.Size(75, 23);
+            this.btnRecord.Size = new System.Drawing.Size(119, 23);
             this.btnRecord.TabIndex = 3;
             this.btnRecord.Text = "Record";
             this.btnRecord.UseVisualStyleBackColor = true;
@@ -219,19 +225,42 @@
             // 
             this.gbxOverlay.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.gbxOverlay.Controls.Add(this.btnAddOsd);
+            this.gbxOverlay.Controls.Add(this.btnRemoveOsd);
+            this.gbxOverlay.Controls.Add(this.flpOsd);
             this.gbxOverlay.Location = new System.Drawing.Point(390, 401);
             this.gbxOverlay.Name = "gbxOverlay";
-            this.gbxOverlay.Size = new System.Drawing.Size(416, 94);
+            this.gbxOverlay.Size = new System.Drawing.Size(419, 94);
             this.gbxOverlay.TabIndex = 7;
             this.gbxOverlay.TabStop = false;
             this.gbxOverlay.Text = "Overlay";
+            // 
+            // btnRemoveOsd
+            // 
+            this.btnRemoveOsd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnRemoveOsd.Location = new System.Drawing.Point(78, 0);
+            this.btnRemoveOsd.Name = "btnRemoveOsd";
+            this.btnRemoveOsd.Size = new System.Drawing.Size(23, 23);
+            this.btnRemoveOsd.TabIndex = 2;
+            this.btnRemoveOsd.Text = "-";
+            this.btnRemoveOsd.UseVisualStyleBackColor = true;
+            this.btnRemoveOsd.Click += new System.EventHandler(this.btnRemoveOsd_Click);
+            // 
+            // flpOsd
+            // 
+            this.flpOsd.AutoScroll = true;
+            this.flpOsd.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flpOsd.Location = new System.Drawing.Point(3, 16);
+            this.flpOsd.Name = "flpOsd";
+            this.flpOsd.Size = new System.Drawing.Size(413, 75);
+            this.flpOsd.TabIndex = 0;
             // 
             // gbxSnapshot
             // 
             this.gbxSnapshot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.gbxSnapshot.Controls.Add(this.btnSnapshot);
             this.gbxSnapshot.Controls.Add(this.pbxSnapshot);
-            this.gbxSnapshot.Location = new System.Drawing.Point(681, 181);
+            this.gbxSnapshot.Location = new System.Drawing.Point(681, 150);
             this.gbxSnapshot.Name = "gbxSnapshot";
             this.gbxSnapshot.Size = new System.Drawing.Size(134, 147);
             this.gbxSnapshot.TabIndex = 8;
@@ -275,13 +304,24 @@
             this.lblStatus.Size = new System.Drawing.Size(31, 17);
             this.lblStatus.Text = "Status";
             // 
+            // btnAddOsd
+            // 
+            this.btnAddOsd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAddOsd.Location = new System.Drawing.Point(54, 0);
+            this.btnAddOsd.Name = "btnAddOsd";
+            this.btnAddOsd.Size = new System.Drawing.Size(23, 23);
+            this.btnAddOsd.TabIndex = 1;
+            this.btnAddOsd.Text = "+";
+            this.btnAddOsd.UseVisualStyleBackColor = true;
+            this.btnAddOsd.Click += new System.EventHandler(this.btnAddOsd_Click);
+            // 
             // yascControl1
             // 
             this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.yascControl1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.yascControl1.CamType = YetAnotherStreamingContol.GstEnums.CamType.Local;
+            this.yascControl1.CamType = Yasc.GstEnums.CamType.Local;
             this.yascControl1.CapFilename = null;
             this.yascControl1.CaptureFrameRate = 0;
             this.yascControl1.Connected = false;
@@ -289,6 +329,20 @@
             this.yascControl1.DeviceIndex = 0;
             this.yascControl1.Location = new System.Drawing.Point(12, 12);
             this.yascControl1.Name = "yascControl1";
+            osdObject17.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            osdObject17.FontDescription = "Arial, 1F";
+            osdObject17.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
+            osdObject17.Name = "";
+            osdObject17.Text = "Testset";
+            osdObject17.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_BOTTOM;
+            osdObject18.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            osdObject18.FontDescription = "Arial, 15.00";
+            osdObject18.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
+            osdObject18.Name = "";
+            osdObject18.Text = "TEst2";
+            osdObject18.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_TOP;
+            this.yascControl1.OverlayObjects.Add(osdObject17);
+            this.yascControl1.OverlayObjects.Add(osdObject18);
             this.yascControl1.Preview = false;
             this.yascControl1.Size = new System.Drawing.Size(663, 381);
             this.yascControl1.TabIndex = 3;
@@ -307,7 +361,7 @@
             this.Controls.Add(this.gbxSrc);
             this.Controls.Add(this.yascControl1);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "YASC - Yet Another Streaming Control";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.gbxSrc.ResumeLayout(false);
@@ -315,6 +369,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).EndInit();
             this.gbxControl.ResumeLayout(false);
+            this.gbxOverlay.ResumeLayout(false);
             this.gbxSnapshot.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbxSnapshot)).EndInit();
             this.statusStrip1.ResumeLayout(false);
@@ -329,7 +384,7 @@
 
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.Button btnStop;
-        private YetAnotherStreamingContol.YascControl yascControl1;
+        private Yasc.YascControl yascControl1;
         private System.Windows.Forms.RadioButton rbtnLocal;
         private System.Windows.Forms.GroupBox gbxSrc;
         private System.Windows.Forms.NumericUpDown nudLocalIdx;
@@ -348,6 +403,9 @@
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel lblStatus;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.FlowLayoutPanel flpOsd;
+        private System.Windows.Forms.Button btnRemoveOsd;
+        private System.Windows.Forms.Button btnAddOsd;
     }
 }
 

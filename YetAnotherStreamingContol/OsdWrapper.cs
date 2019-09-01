@@ -6,10 +6,14 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static YetAnotherStreamingContol.GstEnums;
+using static Yasc.GstEnums;
 
-namespace YetAnotherStreamingContol
+namespace Yasc
 {
+    /// <summary>
+    /// A wrapper class around GStreamer's TextOverlay element. Each OsdObject is a 1:1 correlation with a position/alignment 
+    /// element of the TextOverlay element. However, multiple lines and colors, formats, etc. are possible using the Pango markup language. 
+    /// </summary>
     public class OsdObject
     {
         [Browsable(true)]
@@ -37,13 +41,21 @@ namespace YetAnotherStreamingContol
         public string Text
         {
             get { return _text; }
-            set { _text = value; }
+            set
+            {
+                _text = value;
+                if (this.OverlayElement != null)
+                {
+                    OverlayElement["name"] = value;
+                }
+            }
         }
         public float FontSize
         {
             get
             {
-                if (_font != null) return _font.Size;
+                if (_font != null)
+                    return _font.Size;
                 else
                     return 12f;
             }
@@ -71,13 +83,13 @@ namespace YetAnotherStreamingContol
         {
             get
             {
-                if (this.OverlayElement != null) return (string)OverlayElement["name"];
-                else return "";
+                return _name;
             }
             set
             {
                 if (OverlayElement != null)
                     OverlayElement["name"] = value;
+                _name = value;
             }
         }
 
@@ -119,6 +131,7 @@ namespace YetAnotherStreamingContol
 
         /// <summary>
         /// Access to the raw Gstreamer element if necessary. (Use with caution!)
+        /// Note: this element cannot be created until the GLib system is init'd and the mainloop is running (see gstCam.Connect()).
         /// </summary>
         [Browsable(false)]
         [DefaultValue(null)]
@@ -127,9 +140,10 @@ namespace YetAnotherStreamingContol
         #region fields
 
         private string _text;
+        private string _name = "";
         private TextOverlayHAlign _halign = TextOverlayHAlign.HALIGN_CENTER;
         private TextOverlayVAlign _valign = TextOverlayVAlign.VALIGN_BOTTOM;
-        private string _font_desc;
+        private string _font_desc = "Sans Serif, 15";
         private Font _font = new Font(FontFamily.GenericSansSerif, 15f);
 
         #endregion
@@ -139,10 +153,10 @@ namespace YetAnotherStreamingContol
 
         }
 
-        public OsdObject(string text, string font, int size)
+        public OsdObject(string text, string font, float size)
         {
             _text = text;
-            FontDescription = font + ", " + size.ToString();
+            FontDescription = font + ", " + size.ToString("F2");
         }
 
         [ToolboxItem(false)]

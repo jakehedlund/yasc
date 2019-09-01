@@ -72,6 +72,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="gio-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f, processorArchitecture=MSIL">
       <HintPath>..\packages\GstSharp.1.14.2\lib\net45\gio-sharp.dll</HintPath>
@@ -101,10 +104,19 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="OsdTextSettings.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="OsdTextSettings.Designer.cs">
+      <DependentUpon>OsdTextSettings.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="OsdTextSettings.resx">
+      <DependentUpon>OsdTextSettings.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -134,6 +146,9 @@
       <Project>{3c7592fd-8039-4b58-8cf7-a8cad00388bb}</Project>
       <Name>YetAnotherStreamingContol</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\GstSharp.1.14.2\build\GstSharp.targets" Condition="Exists('..\packages\GstSharp.1.14.2\build\GstSharp.targets')" />
