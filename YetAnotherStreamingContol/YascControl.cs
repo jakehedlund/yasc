@@ -52,8 +52,18 @@ namespace Yasc
         /// <summary>
         /// Full path including filename to save files. 
         /// </summary>
-        public string CapFilename { get { return gstCam?.RecFilename; } set { if (gstCam != null) gstCam.RecFilename = value; } }
-
+        [Description("Location to which the recorded file is saved. ")]
+        [DefaultValue("")]
+        public string CapFilename
+        {
+            get { return gstCam == null ? _fname : gstCam.RecFilename; }
+            set
+            {
+                if (gstCam != null) gstCam.RecFilename = value;
+                _fname = value;
+            }
+        }
+        private string _fname = "";
         /// <summary>
         /// Not used. 
         /// </summary>
@@ -81,6 +91,10 @@ namespace Yasc
                 //}
             }
         }
+
+        [DefaultValue(false)]
+        [Description("Keep last frame on preview panel or show background color on pause.")]
+        public bool ShowLastFrameOnStop { get; set; } = false;
 
         [Browsable(false)]
         public bool IsRecording { get { return gstCam?.CameraState == CamState.Recording; } }
@@ -181,7 +195,10 @@ namespace Yasc
 
         private void GstCam_PreviewStopped(object sender, EventArgs e)
         {
-            PreviewStopped?.Invoke(sender, e); 
+            PreviewStopped?.Invoke(sender, e);
+
+            if(!ShowLastFrameOnStop)
+                pnlPreview.Invalidate(); 
         }
 
         private void GstCam_PreviewStarted(object sender, EventArgs e)

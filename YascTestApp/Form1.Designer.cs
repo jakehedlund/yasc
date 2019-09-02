@@ -29,8 +29,8 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            Yasc.OsdObject osdObject17 = new Yasc.OsdObject();
-            Yasc.OsdObject osdObject18 = new Yasc.OsdObject();
+            Yasc.OsdObject osdObject1 = new Yasc.OsdObject();
+            Yasc.OsdObject osdObject2 = new Yasc.OsdObject();
             this.btnStart = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
             this.rbtnLocal = new System.Windows.Forms.RadioButton();
@@ -45,6 +45,7 @@
             this.btnBrowse = new System.Windows.Forms.Button();
             this.btnRecord = new System.Windows.Forms.Button();
             this.gbxOverlay = new System.Windows.Forms.GroupBox();
+            this.btnAddOsd = new System.Windows.Forms.Button();
             this.btnRemoveOsd = new System.Windows.Forms.Button();
             this.flpOsd = new System.Windows.Forms.FlowLayoutPanel();
             this.gbxSnapshot = new System.Windows.Forms.GroupBox();
@@ -53,7 +54,6 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.btnAddOsd = new System.Windows.Forms.Button();
             this.yascControl1 = new Yasc.YascControl();
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
@@ -235,6 +235,17 @@
             this.gbxOverlay.TabStop = false;
             this.gbxOverlay.Text = "Overlay";
             // 
+            // btnAddOsd
+            // 
+            this.btnAddOsd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAddOsd.Location = new System.Drawing.Point(54, 0);
+            this.btnAddOsd.Name = "btnAddOsd";
+            this.btnAddOsd.Size = new System.Drawing.Size(23, 23);
+            this.btnAddOsd.TabIndex = 1;
+            this.btnAddOsd.Text = "+";
+            this.btnAddOsd.UseVisualStyleBackColor = true;
+            this.btnAddOsd.Click += new System.EventHandler(this.btnAddOsd_Click);
+            // 
             // btnRemoveOsd
             // 
             this.btnRemoveOsd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -304,17 +315,6 @@
             this.lblStatus.Size = new System.Drawing.Size(31, 17);
             this.lblStatus.Text = "Status";
             // 
-            // btnAddOsd
-            // 
-            this.btnAddOsd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnAddOsd.Location = new System.Drawing.Point(54, 0);
-            this.btnAddOsd.Name = "btnAddOsd";
-            this.btnAddOsd.Size = new System.Drawing.Size(23, 23);
-            this.btnAddOsd.TabIndex = 1;
-            this.btnAddOsd.Text = "+";
-            this.btnAddOsd.UseVisualStyleBackColor = true;
-            this.btnAddOsd.Click += new System.EventHandler(this.btnAddOsd_Click);
-            // 
             // yascControl1
             // 
             this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -322,27 +322,27 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.yascControl1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.yascControl1.CamType = Yasc.GstEnums.CamType.Local;
-            this.yascControl1.CapFilename = null;
+            this.yascControl1.CapFilename = "";
             this.yascControl1.CaptureFrameRate = 0;
             this.yascControl1.Connected = false;
             this.yascControl1.ConnectionUri = null;
             this.yascControl1.DeviceIndex = 0;
             this.yascControl1.Location = new System.Drawing.Point(12, 12);
             this.yascControl1.Name = "yascControl1";
-            osdObject17.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
-            osdObject17.FontDescription = "Arial, 1F";
-            osdObject17.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
-            osdObject17.Name = "";
-            osdObject17.Text = "Testset";
-            osdObject17.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_BOTTOM;
-            osdObject18.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
-            osdObject18.FontDescription = "Arial, 15.00";
-            osdObject18.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
-            osdObject18.Name = "";
-            osdObject18.Text = "TEst2";
-            osdObject18.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_TOP;
-            this.yascControl1.OverlayObjects.Add(osdObject17);
-            this.yascControl1.OverlayObjects.Add(osdObject18);
+            osdObject1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            osdObject1.FontDescription = "Arial, 12";
+            osdObject1.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
+            osdObject1.Name = "";
+            osdObject1.Text = "TopCenterTest";
+            osdObject1.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_TOP;
+            osdObject2.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
+            osdObject2.FontDescription = "Arial, 15.00";
+            osdObject2.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_LEFT;
+            osdObject2.Name = "ttt";
+            osdObject2.Text = "BottomLeftTest";
+            osdObject2.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_BOTTOM;
+            this.yascControl1.OverlayObjects.Add(osdObject1);
+            this.yascControl1.OverlayObjects.Add(osdObject2);
             this.yascControl1.Preview = false;
             this.yascControl1.Size = new System.Drawing.Size(663, 381);
             this.yascControl1.TabIndex = 3;

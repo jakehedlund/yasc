@@ -14,7 +14,7 @@ Initial release supports h.264 and MJPG via RTSP (anything [decodebin](https://g
   * Fullscreen (double click or programmatically). 
   * Snapshots (frame-grabs). 
   * Test video source (videotestsrc). 
-  * Low-latency (150ms or better). 
+  * Low-latency (150ms or better using RTSP). 
   * Simple to use. 
   * Events for preview started/stopped, etc.
   * Fast (GStreamer is written entirely in C). 

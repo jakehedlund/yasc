@@ -83,7 +83,12 @@ namespace Yasc
         {
             get {
                 if (mSplitMuxSink != null)
-                    return mSplitMuxSink["location"] as string;
+                {
+                    if (!string.IsNullOrEmpty(mSplitMuxSink["location"] as string))
+                        return mSplitMuxSink["location"] as string;
+                    else
+                        return ""; 
+                }
                 else
                     return _recFname;
             }
@@ -1210,7 +1215,7 @@ namespace Yasc
             mEncx264["sliced-threads"] = true;
             mEncx264["tune"] = 4;
             mEncx264["speed-preset"] = 1;
-            mEncx264["bitrate"] = (uint)10000000;
+            mEncx264["bitrate"] = (uint)5000000;
 
             //muxMp4["faststart"] = true;
 

@@ -38,22 +38,18 @@
             // 
             // textBox1
             // 
-            this.textBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox1.Location = new System.Drawing.Point(4, 4);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox1.Location = new System.Drawing.Point(3, 2);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(299, 23);
+            this.textBox1.Size = new System.Drawing.Size(225, 20);
             this.textBox1.TabIndex = 0;
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // nudFontSize
             // 
             this.nudFontSize.DecimalPlaces = 2;
-            this.nudFontSize.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudFontSize.Location = new System.Drawing.Point(312, 5);
-            this.nudFontSize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.nudFontSize.Location = new System.Drawing.Point(234, 2);
             this.nudFontSize.Name = "nudFontSize";
-            this.nudFontSize.Size = new System.Drawing.Size(63, 23);
+            this.nudFontSize.Size = new System.Drawing.Size(47, 20);
             this.nudFontSize.TabIndex = 1;
             // 
             // chkEnable
@@ -62,8 +58,7 @@
             this.chkEnable.Checked = true;
             this.chkEnable.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkEnable.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.chkEnable.Location = new System.Drawing.Point(383, 7);
-            this.chkEnable.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.chkEnable.Location = new System.Drawing.Point(287, 4);
             this.chkEnable.Name = "chkEnable";
             this.chkEnable.Size = new System.Drawing.Size(44, 21);
             this.chkEnable.TabIndex = 2;
@@ -76,10 +71,9 @@
             this.cmbHoriz.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbHoriz.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.cmbHoriz.FormattingEnabled = true;
-            this.cmbHoriz.Location = new System.Drawing.Point(423, 3);
-            this.cmbHoriz.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.cmbHoriz.Location = new System.Drawing.Point(330, 1);
             this.cmbHoriz.Name = "cmbHoriz";
-            this.cmbHoriz.Size = new System.Drawing.Size(140, 24);
+            this.cmbHoriz.Size = new System.Drawing.Size(106, 21);
             this.cmbHoriz.TabIndex = 3;
             this.cmbHoriz.SelectedIndexChanged += new System.EventHandler(this.cmbHoriz_SelectedIndexChanged);
             // 
@@ -88,26 +82,23 @@
             this.cmbVert.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbVert.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.cmbVert.FormattingEnabled = true;
-            this.cmbVert.Location = new System.Drawing.Point(567, 3);
-            this.cmbVert.Margin = new System.Windows.Forms.Padding(4);
+            this.cmbVert.Location = new System.Drawing.Point(438, 1);
             this.cmbVert.Name = "cmbVert";
-            this.cmbVert.Size = new System.Drawing.Size(140, 24);
+            this.cmbVert.Size = new System.Drawing.Size(106, 21);
             this.cmbVert.TabIndex = 4;
             this.cmbVert.SelectedIndexChanged += new System.EventHandler(this.cmbVert_SelectedIndexChanged);
             // 
             // OsdTextSettings
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.cmbVert);
             this.Controls.Add(this.cmbHoriz);
             this.Controls.Add(this.chkEnable);
             this.Controls.Add(this.nudFontSize);
             this.Controls.Add(this.textBox1);
-            this.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "OsdTextSettings";
-            this.Size = new System.Drawing.Size(718, 32);
+            this.Size = new System.Drawing.Size(549, 26);
             ((System.ComponentModel.ISupportInitialize)(this.nudFontSize)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

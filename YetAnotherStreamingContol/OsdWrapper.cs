@@ -176,5 +176,10 @@ namespace Yasc
             }
         }
 
+        public override string ToString()
+        {
+            return this.Text + ", " + this.FontDescription;
+        }
+
     }
 }
