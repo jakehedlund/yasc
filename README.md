@@ -4,6 +4,10 @@ Yet Another Streaming Control
 ## About
 yasc is a high-level, fully-featured, low-latency, fast, lightweight, streaming (and recording) .NET UserControl based on [GStreamer](https://gstreamer.freedesktop.org/documentation/index.html). It is written for .NET and WinForms in C#. Support for WPF is planned. It is intended as an easy-to-use, drop-in video streaming control for programmers who just want to program and not deal with video rendering/display or learning GStreamer. 
 
+### Demo app screenshot
+
+![demo_app](/res/cap1.png)
+
 ## Features
 Initial release supports h.264 and MJPG via RTSP (anything [decodebin](https://gstreamer.freedesktop.org/documentation/playback/decodebin.html) can handle) and built-in/USB webcam streaming, text overlays, realtime preview, recording, and more. It is designed to be as simple and easy to use as possible with drop-and-go functionality. 
 
