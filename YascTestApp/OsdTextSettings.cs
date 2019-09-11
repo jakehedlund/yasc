@@ -90,5 +90,13 @@ namespace YascTestApp
                 OsdObject.RefreshElement(); 
             }
         }
+
+        private void nudFontSize_ValueChanged(object sender, EventArgs e)
+        {
+            if(this.OsdObject != null && !initing)
+            {
+                
+            }
+        }
     }
 }

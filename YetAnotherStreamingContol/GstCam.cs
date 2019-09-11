@@ -69,12 +69,13 @@ namespace Yasc
         public bool IsConnected { get { return this.CameraState >= CamState.Connected; } }
 
         /// <summary>
-        /// RTSP connection URI. 
+        /// RTSP connection URI. Or in the case of streaming a file, the file path. 
         /// </summary>
         public string ConnectionUri {
-            get;
-            set;
+            get => _connectionUri;
+            set => _connectionUri = value;
         }
+        private string _connectionUri = ""; 
 
         /// <summary>
         /// File name (including path) to which record. 
@@ -141,21 +142,24 @@ namespace Yasc
                 }
             } }
 
+        /// <summary>
+        /// Current state of the camera. Change using the Start.../Stop...() methods.
+        /// Invokes corresponding events when set internally. 
+        /// TODO: I don't like this. Shouldn't raise events from inside the GST message handler. 
+        /// </summary>
         public CamState CameraState { get {
                 return _camState; 
-                //State st = State.Null, pend = State.Null;
-                //pipeline.GetState(out st, out pend, 100);
-                //switch(st)
-                //{
-
-                //}
             }
+
             private set {
                 var prev = _camState;
                 switch (value)
                 {
                     case CamState.Previewing:
                         //IsConnected = true;
+                        if (prev == CamState.Recording)
+                            RecordingStopped?.Invoke(this, new EventArgs()); 
+
                         _camState = value;
                         if (prev != value)  
                             PreviewStarted?.Invoke(this, new EventArgs()); 
@@ -165,6 +169,9 @@ namespace Yasc
                         break;
                     case CamState.Stopped:
                         //IsConnected = false;
+                        if (prev == CamState.Recording)
+                            RecordingStopped?.Invoke(this, new EventArgs());
+
                         _camState = value;
                         if(prev != value)
                             PreviewStopped?.Invoke(this, new EventArgs());
@@ -188,6 +195,23 @@ namespace Yasc
         public bool StitchVideos { get { return false; } set { throw new NotImplementedException(); } }
 
         public bool IsFullscreen { get; set; }
+
+        public string FileSourceLocation { get
+            {
+                return _fileSrcLoc;
+            }
+
+            set
+            {
+                if(srcElt != null)
+                {
+                    srcElt["location"] = value;
+                }
+                _fileSrcLoc = value;
+            }
+
+        }
+        private string _fileSrcLoc = ""; 
 
         #region Events
         public event EventHandler PreviewStarted;
@@ -222,8 +246,16 @@ namespace Yasc
             if (!string.IsNullOrEmpty(p))
                 pathGst = System.IO.Path.Combine(p, "bin");
 
+            // Only use x64 if we're built for x64.
+            p = Environment.GetEnvironmentVariable("GSTREAMER_1_0_ROOT_X86_64");
+            if (!string.IsNullOrEmpty(p) && IntPtr.Size == 8)
+            {
+                pathGst = System.IO.Path.Combine(p, "bin");
+                sysDbg.WriteLine("Using the 64-bit version of GStreamer..."); 
+            }
+            
             if (!System.IO.Directory.Exists(pathGst))
-                throw new YascBaseException("Couldn't locate a GStreamer installation. Please check your environment variable GSTREAMER_1_0_ROOT_X86 and install the x86 version of GStreamer.");
+                throw new YascBaseException($"Couldn't locate a GStreamer installation at {pathGst}. Please check your environment variable GSTREAMER_1_0_ROOT_X86 or _X86_64 and install either the x86 or x86_64 version of GStreamer.");
 
             var path = Environment.GetEnvironmentVariable("Path");
 
@@ -536,7 +568,9 @@ namespace Yasc
                 binSource.AddPad(padSrcBinSource);
                 binSource.Link(binDecode); 
             }
-            else if (string.IsNullOrWhiteSpace(this.ConnectionUri) || this._type == CamType.Local)
+            else if (
+                (string.IsNullOrWhiteSpace(this.ConnectionUri) || this._type == CamType.Local) 
+                && _type != CamType.FileSrc)
             {
                 sysDbg.WriteLine("Creating local source.");
                 srcElt = ElementFactory.Make("ksvideosrc", "localSrc0");
@@ -573,8 +607,22 @@ namespace Yasc
 
                 // We don't have a pad until we enter the playing state, so can't add the ghost pad until later. 
                 srcElt.PadAdded += cb_binSrcPadAdded;
-                binSource.Add(srcElt);
+                ret &= binSource.Add(srcElt);
                 
+            }
+            else if(this._type == CamType.FileSrc)
+            {
+                sysDbg.WriteLine("Creating file source. ");
+                srcElt = ElementFactory.Make("filesrc", "filesrc0");
+                if (srcElt == null) throw new YascElementNullException("Failed to create file source.");
+                srcElt["location"] = this.FileSourceLocation;
+
+                //srcElt.PadAdded += cb_binSrcPadAdded;
+                ret &= binSource.Add(srcElt);
+
+                padSrcBinSource = new GhostPad("srcPad", srcElt.GetStaticPad("src"));
+                ret &= binSource.AddPad(padSrcBinSource);
+                ret &= binSource.Link(binDecode);
             }
             else
             {
@@ -585,8 +633,7 @@ namespace Yasc
             mTee = ElementFactory.Make("tee", "tee0");
             GstUtilities.CheckError(mTee);
 
-
-            return true;
+            return ret;
         }
 
         
@@ -603,6 +650,7 @@ namespace Yasc
         /// Setup the pipeline, including starting the glib and gtk loops. Then, create and link the elements. 
         /// In hindsight: Doing a ParseLaunch would have been much easier. Then just get the elements needed with pipeline.GetChildByName (or a variant).
         /// //Parse.Launch($"rtspsrc location={this.ConnectionUri} latency={this.Latency} drop-on-latency=true ! decodebin ! textoverlay ! tee name=t0 ! queue ! videoconvert ! autovideosink name=vidsink"); 
+        /// Not sure if this would take care of auto linking though - can't link until we start the pipeline and get rtsp data flowing. 
         /// </summary>
         /// <returns></returns>
         protected bool SetupPipeline()
@@ -830,6 +878,9 @@ namespace Yasc
         /// <param name="args"></param>
         private void cb_busSyncMessage(object o, SyncMessageArgs args)
         {
+            if (this._type == CamType.FileSrc)
+                return;
+
             //System.Diagnostics.Debug.WriteLine("bus_SyncMessage: " + args.Message.Type.ToString());
             if (Gst.Video.Global.IsVideoOverlayPrepareWindowHandleMessage(args.Message))
             {
@@ -857,7 +908,9 @@ namespace Yasc
                         overlay_.WindowHandle = (IntPtr)HdlPreviewPanel;
                         overlay_.HandleEvents(true);
                     }
-                    catch (Exception ex) { sysDbg.WriteLine("Error setting overlay: " + ex.Message); }
+                    catch (Exception ex) {
+                        sysDbg.WriteLine("Error setting overlay: " + ex.Message);
+                    }
                 }
             }
             if (args.Message.Type == MessageType.Eos)
@@ -882,10 +935,9 @@ namespace Yasc
                     //
                     GLib.GException err;
                     string debug;
-                    sysDbg.WriteLine("\tError received: " + msg.ToString());
                     msg.ParseError(out err, out debug);
                     if (debug == null) { debug = "none"; }
-                    //sysDbg.WriteLine("\tError received from element {0}: {1}", msg.Src, err.Message);
+                    sysDbg.WriteLine("\tError received from element {0}: {1}", msg.Src.Name, err.Message);
                     //sysDbg.WriteLine("\tDebugging information: " + debug);
                     GstUtilities.DumpGraph(pipeline, "error");
                     StopPreview();
@@ -977,17 +1029,17 @@ namespace Yasc
 
                     msg.ParseQosStats(out fmt, out processed, out dropped);
                     msg.ParseQosValues(out jitt, out prop, out qual);
-                    Console.WriteLine($"\tQoS Stats from {msg.Src.Name} - format: {fmt}, processed: {processed}, dropped: {dropped}");
-                    Console.WriteLine($"\tQoS Values - jitter:{jitt}, proportion: {prop}, quality: {qual}");
+                    sysDbg.WriteLine($"\tQoS Stats from {msg.Src.Name} - format: {fmt}, processed: {processed}, dropped: {dropped}");
+                    sysDbg.WriteLine($"\tQoS Values - jitter:{jitt}, proportion: {prop}, quality: {qual}");
                     break;
                 case MessageType.Warning:
                     IntPtr gError;
                     string dbg;
                     msg.ParseWarning(out gError, out dbg);
-                    Console.WriteLine("\tWarning! code " + gError + ". Debug - " + dbg);
+                    sysDbg.WriteLine("\tWarning! code " + gError + ". Debug - " + dbg);
                     break;
                 case MessageType.Eos:
-                    Console.WriteLine("EOS received...");
+                    sysDbg.WriteLine("EOS received...");
                     break;
                 default:
                     sysDbg.WriteLine("\tHandleMessage received msg of type: {0}", msg.Type);
@@ -1086,7 +1138,8 @@ namespace Yasc
                 {
                     mSplitMuxSink["location"] = _recFname;
                     mSplitMuxSink["max-size-time"] = GstUtilities.SecondsToNs((uint)(VideoSplitTimeS == 0 ? 600 : VideoSplitTimeS)); //600 * 1E9; // in ns (10 mins)
-                    mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB                                                               //mSplitMuxSink["async-handling"] = true;
+                    mSplitMuxSink["max-size-bytes"] = GstUtilities.MbToBytes((uint)(VideoSplitSizeMb == 0 ? 200 : VideoSplitSizeMb)); //200 * 1E6; // 200 MB                                                               
+                    //mSplitMuxSink["async-handling"] = true;
                 }
                 else
                 {
@@ -1148,7 +1201,7 @@ namespace Yasc
         /// <returns></returns>
         private PadProbeReturn cb_unlinkRecordTee(Pad p, PadProbeInfo inf)
         {
-            Console.WriteLine("unlinking...");
+            sysDbg.WriteLine("unlinking...");
             // If we're not recording, simply do nothing (remove the probe).  
             if (this.CameraState != CamState.Recording)
                 return PadProbeReturn.Remove;
@@ -1212,10 +1265,15 @@ namespace Yasc
             //mPipeline.Add(mEncx264, mQueue2, mMux, mFileSink);
 
             // Configure elements.
-            mEncx264["sliced-threads"] = true;
+            mEncx264["sliced-threads"] = true; // lower effiency, higher speed.
+            mEncx264["cabac"] = false; // try to use baseline profile
             mEncx264["tune"] = 4;
-            mEncx264["speed-preset"] = 1;
-            mEncx264["bitrate"] = (uint)5000000;
+            mEncx264["speed-preset"] = 1; //ultrafast
+            mEncx264["pass"] = 4; // constant quantizer encode mode. 
+            mEncx264["bitrate"] = (uint)6144; // 6mbps (max when quantizer enabled)
+            mEncx264["quantizer"] = 26; // quality hardcoded for now
+            mEncx264["qp-min"] = 19; // minimum quality
+            mEncx264["qp-max"] = 32; 
 
             //muxMp4["faststart"] = true;
 
@@ -1233,8 +1291,9 @@ namespace Yasc
 
             // Link elements (inside bin)
             if (!Element.Link(mQueueRec, mEncx264, mSplitMuxSink))
-                Console.WriteLine("Error linking recording pipeline.");
+                sysDbg.WriteLine("Error linking recording pipeline.");
 
+            // Need to forward messages to propogate the EOS event. I think. 
             pipeline.MessageForward = true;
 
         }
@@ -1253,15 +1312,18 @@ namespace Yasc
                     mDispSink = ElementFactory.Make("autovideosink", "videosink0");
                 GstUtilities.CheckError(mDispSink);
 
-                mDispSink["sync"] = false;
+                if (this._type == CamType.FileSrc)
+                    mDispSink["sync"] = true;
+                else
+                    mDispSink["sync"] = false;
 
                 if (mQueueDisp == null)
                     mQueueDisp = ElementFactory.Make("queue", "qDisp");
                 GstUtilities.CheckError(mQueueDisp);
 
-                if (mConvert == null)
-                    mConvert = ElementFactory.Make("videoconvert", "conv0");
-                GstUtilities.CheckError(mConvert);
+                //if (mConvert == null)
+                //    mConvert = ElementFactory.Make("videoconvert", "conv0");
+                //GstUtilities.CheckError(mConvert);
 
                 if (mTee == null)
                     mTee = ElementFactory.Make("tee", "tee0");
@@ -1272,7 +1334,6 @@ namespace Yasc
                 sysDbg.WriteLine("Error creating elements: " + ex.Message);
                 return false;
             }
-
 
             return true;
         }

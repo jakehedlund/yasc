@@ -26,6 +26,7 @@ namespace YascTestApp
             yascControl1.PreviewStarted += YascControl1_PreviewStarted;
             yascControl1.PreviewStopped += YascControl1_PreviewStopped;
             yascControl1.RecordingStarted += YascControl1_RecordingStarted;
+            yascControl1.ErrorStreaming += this.YascControl1_ErrorStreaming;
 
             //yascControl1.OverlayObjects = new List<OsdObject>();
 
@@ -33,9 +34,14 @@ namespace YascTestApp
             //yascControl1.OverlayObjects.Add(new OsdObject("Test222", "Arial", 13) { HorizontalAlignment = GstEnums.TextOverlayHAlign.HALIGN_RIGHT, VerticalAlignment = GstEnums.TextOverlayVAlign.VALIGN_TOP });
         }
 
+        private void YascControl1_ErrorStreaming(object sender, YascStreamingException e)
+        {
+            SetStatusText("Error streaming: " + e.Message); 
+        }
+
         private void YascControl1_PreviewStopped(object sender, EventArgs e)
         {
-            SetStatusText("preview stopped.");
+            SetStatusText("Preview stopped.");
             enableControls(true); 
         }
 
@@ -46,7 +52,7 @@ namespace YascTestApp
 
         private void YascControl1_PreviewStarted(object sender, EventArgs e)
         {
-            SetStatusText("Preview Started");
+            SetStatusText("Preview started");
             enableControls(false);
             
         }
@@ -85,6 +91,12 @@ namespace YascTestApp
             {
                 if (this.IsDisposed) return;
                 if (IsClosing) return;
+
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action<string>(SetStatusText), newStatus);
+                    return;
+                }
 
                 if (!this.Disposing)
                     lblStatus.Text = newStatus;
@@ -139,7 +151,7 @@ namespace YascTestApp
             if(res == DialogResult.OK)
             {
                 yascControl1.CapFilename = saveDialog.FileName;
-                Properties.Settings.Default.LastPath = saveDialog.FileName;
+                Properties.Settings.Default.LastRecordPath = saveDialog.FileName;
                 Properties.Settings.Default.Save(); 
             }
         }
@@ -180,7 +192,7 @@ namespace YascTestApp
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            string path = Properties.Settings.Default.LastPath;
+            string path = Properties.Settings.Default.LastRecordPath;
             if (!string.IsNullOrEmpty(path))
                 yascControl1.CapFilename = path; 
 
@@ -280,6 +292,31 @@ namespace YascTestApp
                 }
             }
 
+        }
+
+        private void btnFilesrcBrowse_Click(object sender, EventArgs e)
+        {
+            var openDialog = new OpenFileDialog();
+            openDialog.CheckFileExists = true;
+            openDialog.ValidateNames = true;
+            openDialog.Title = "Choose file to open...";
+            openDialog.Filter = "Video files (*.avi, *.mp4, *.mkv)|*.avi;*.mp4;*.mkv|Audio files (*.mp3, *.wav)|*.mp3;*.wav;*.ogg|All files (*.*)|*.*";
+            var res = openDialog.ShowDialog();
+            if (res == DialogResult.OK)
+            {
+                yascControl1.FileSoureName = openDialog.FileName;
+                Properties.Settings.Default.LastFileSrcPath = openDialog.FileName;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        private void rbtnFileSrc_CheckedChanged(object sender, EventArgs e)
+        {
+            btnFilesrcBrowse.Enabled = rbtnFileSrc.Checked;
+
+            yascControl1.CamType = GstEnums.CamType.FileSrc;
+
+            yascControl1.FileSoureName = Properties.Settings.Default.LastFileSrcPath; 
         }
     }
 }

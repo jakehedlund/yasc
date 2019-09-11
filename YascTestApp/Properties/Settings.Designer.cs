@@ -26,12 +26,12 @@ namespace YascTestApp.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LastPath {
+        public string LastRecordPath {
             get {
-                return ((string)(this["LastPath"]));
+                return ((string)(this["LastRecordPath"]));
             }
             set {
-                this["LastPath"] = value;
+                this["LastRecordPath"] = value;
             }
         }
         
@@ -43,6 +43,18 @@ namespace YascTestApp.Properties {
             }
             set {
                 this["RtspUris"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastFileSrcPath {
+            get {
+                return ((string)(this["LastFileSrcPath"]));
+            }
+            set {
+                this["LastFileSrcPath"] = value;
             }
         }
     }

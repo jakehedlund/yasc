@@ -51,6 +51,7 @@
             this.nudFontSize.Name = "nudFontSize";
             this.nudFontSize.Size = new System.Drawing.Size(47, 20);
             this.nudFontSize.TabIndex = 1;
+            this.nudFontSize.ValueChanged += new System.EventHandler(this.nudFontSize_ValueChanged);
             // 
             // chkEnable
             // 

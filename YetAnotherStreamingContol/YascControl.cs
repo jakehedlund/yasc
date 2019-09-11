@@ -45,7 +45,7 @@ namespace Yasc
         }
 
         /// <summary>
-        ///  Local device index (set to -2 for IP cameras... maybe...). 
+        ///  Local device index. Only has an effect in CamType.Local or CamType.TestSrc modes. 
         /// </summary>
         public int DeviceIndex { get { return gstCam == null ? 0 : gstCam.DeviceIndex; } set { if (gstCam != null) gstCam.DeviceIndex = value; } }
 
@@ -59,11 +59,26 @@ namespace Yasc
             get { return gstCam == null ? _fname : gstCam.RecFilename; }
             set
             {
-                if (gstCam != null) gstCam.RecFilename = value;
                 _fname = value;
+                if (gstCam != null)
+                    gstCam.RecFilename = value;
             }
         }
         private string _fname = "";
+
+        [Description("Open a video file for playback. ")]
+        [DefaultValue("")]
+        public string FileSoureName
+        {
+            get { return gstCam == null ? _fsourcename : gstCam.FileSourceLocation; }
+            set
+            {
+                _fsourcename = value;
+                if (gstCam != null)
+                    gstCam.FileSourceLocation = value;
+            }
+        }
+        private string _fsourcename = ""; 
         /// <summary>
         /// Not used. 
         /// </summary>

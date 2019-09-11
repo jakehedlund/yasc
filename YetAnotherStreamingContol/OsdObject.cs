@@ -46,7 +46,7 @@ namespace Yasc
                 _text = value;
                 if (this.OverlayElement != null)
                 {
-                    OverlayElement["name"] = value;
+                    OverlayElement["text"] = value;
                 }
             }
         }
@@ -58,6 +58,17 @@ namespace Yasc
                     return _font.Size;
                 else
                     return 12f;
+            }
+            set
+            {
+                if(_font != null)
+                {
+                    _font = new Font(_font.Name, value);
+                }
+                else
+                {
+                    _font = new Font("Sans Serif", value);
+                }
             }
 
         }

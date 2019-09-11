@@ -31,10 +31,13 @@
             this.components = new System.ComponentModel.Container();
             Yasc.OsdObject osdObject1 = new Yasc.OsdObject();
             Yasc.OsdObject osdObject2 = new Yasc.OsdObject();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.btnStart = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
             this.rbtnLocal = new System.Windows.Forms.RadioButton();
             this.gbxSrc = new System.Windows.Forms.GroupBox();
+            this.btnFilesrcBrowse = new System.Windows.Forms.Button();
+            this.rbtnFileSrc = new System.Windows.Forms.RadioButton();
             this.btnDump = new System.Windows.Forms.Button();
             this.cmbUri = new System.Windows.Forms.ComboBox();
             this.nudTestSrc = new System.Windows.Forms.NumericUpDown();
@@ -101,6 +104,8 @@
             // gbxSrc
             // 
             this.gbxSrc.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.gbxSrc.Controls.Add(this.btnFilesrcBrowse);
+            this.gbxSrc.Controls.Add(this.rbtnFileSrc);
             this.gbxSrc.Controls.Add(this.btnDump);
             this.gbxSrc.Controls.Add(this.cmbUri);
             this.gbxSrc.Controls.Add(this.nudTestSrc);
@@ -115,6 +120,30 @@
             this.gbxSrc.TabStop = false;
             this.gbxSrc.Text = "Source";
             // 
+            // btnFilesrcBrowse
+            // 
+            this.btnFilesrcBrowse.Enabled = false;
+            this.btnFilesrcBrowse.Location = new System.Drawing.Point(215, 66);
+            this.btnFilesrcBrowse.Name = "btnFilesrcBrowse";
+            this.btnFilesrcBrowse.Size = new System.Drawing.Size(75, 23);
+            this.btnFilesrcBrowse.TabIndex = 10;
+            this.btnFilesrcBrowse.Text = "Browse...";
+            this.toolTip1.SetToolTip(this.btnFilesrcBrowse, "Open file to play.");
+            this.btnFilesrcBrowse.UseVisualStyleBackColor = true;
+            this.btnFilesrcBrowse.Click += new System.EventHandler(this.btnFilesrcBrowse_Click);
+            // 
+            // rbtnFileSrc
+            // 
+            this.rbtnFileSrc.AutoSize = true;
+            this.rbtnFileSrc.Location = new System.Drawing.Point(154, 69);
+            this.rbtnFileSrc.Name = "rbtnFileSrc";
+            this.rbtnFileSrc.Size = new System.Drawing.Size(55, 17);
+            this.rbtnFileSrc.TabIndex = 9;
+            this.rbtnFileSrc.TabStop = true;
+            this.rbtnFileSrc.Text = "Filesrc";
+            this.rbtnFileSrc.UseVisualStyleBackColor = true;
+            this.rbtnFileSrc.CheckedChanged += new System.EventHandler(this.rbtnFileSrc_CheckedChanged);
+            // 
             // btnDump
             // 
             this.btnDump.Location = new System.Drawing.Point(291, 13);
@@ -122,6 +151,7 @@
             this.btnDump.Size = new System.Drawing.Size(75, 23);
             this.btnDump.TabIndex = 8;
             this.btnDump.Text = "Dump graph";
+            this.toolTip1.SetToolTip(this.btnDump, "Create a .dot file of the current pipeline (for debugging).");
             this.btnDump.UseVisualStyleBackColor = true;
             this.btnDump.Click += new System.EventHandler(this.btnDump_Click);
             // 
@@ -208,6 +238,7 @@
             this.btnBrowse.Size = new System.Drawing.Size(119, 23);
             this.btnBrowse.TabIndex = 4;
             this.btnBrowse.Text = "Browse...";
+            this.toolTip1.SetToolTip(this.btnBrowse, "Choose recorded file save location. ");
             this.btnBrowse.UseVisualStyleBackColor = true;
             this.btnBrowse.Click += new System.EventHandler(this.btnBrowse_Click);
             // 
@@ -322,21 +353,22 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.yascControl1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.yascControl1.CamType = Yasc.GstEnums.CamType.Local;
-            this.yascControl1.CapFilename = "";
             this.yascControl1.CaptureFrameRate = 0;
             this.yascControl1.Connected = false;
-            this.yascControl1.ConnectionUri = null;
+            this.yascControl1.ConnectionUri = "";
             this.yascControl1.DeviceIndex = 0;
             this.yascControl1.Location = new System.Drawing.Point(12, 12);
             this.yascControl1.Name = "yascControl1";
             osdObject1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
             osdObject1.FontDescription = "Arial, 12";
+            osdObject1.FontSize = 15F;
             osdObject1.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_CENTER;
             osdObject1.Name = "";
             osdObject1.Text = "TopCenterTest";
             osdObject1.VerticalAlignment = Yasc.GstEnums.TextOverlayVAlign.VALIGN_TOP;
             osdObject2.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F);
             osdObject2.FontDescription = "Arial, 15.00";
+            osdObject2.FontSize = 15F;
             osdObject2.HorizontalAlignment = Yasc.GstEnums.TextOverlayHAlign.HALIGN_LEFT;
             osdObject2.Name = "ttt";
             osdObject2.Text = "BottomLeftTest";
@@ -360,7 +392,9 @@
             this.Controls.Add(this.gbxControl);
             this.Controls.Add(this.gbxSrc);
             this.Controls.Add(this.yascControl1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "YASC - Yet Another Streaming Control";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -406,6 +440,8 @@
         private System.Windows.Forms.FlowLayoutPanel flpOsd;
         private System.Windows.Forms.Button btnRemoveOsd;
         private System.Windows.Forms.Button btnAddOsd;
+        private System.Windows.Forms.RadioButton rbtnFileSrc;
+        private System.Windows.Forms.Button btnFilesrcBrowse;
     }
 }
 
