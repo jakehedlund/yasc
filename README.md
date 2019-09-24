@@ -26,8 +26,9 @@ Initial release supports h.264 and MJPG via RTSP (anything [decodebin](https://g
   * And more... 
 * Planned:
   - [x] 64-bit support. 
-  - [ ] WPF support. 
   - [ ] File playback (only live sources implemented for now). 
+  - [ ] WPF support. 
+  - [ ] Nuget package.
   - [ ] Recording stitching (pause/resume recordings with same file). 
   - [ ] Audio previewing (and recording).
   - [ ] PIP (picture-in-picture). 
@@ -55,6 +56,7 @@ As this is a relatively simple wrapper around the great GStreamer, many more fea
 1. Add the yasc DLL to your toolbox. 
 1. Drag a YascControl onto your form. 
 1. Add buttons and event handlers as necessary.
+1. Set YascControl.CamType to the correct camera type. 
 1. Set streaming source index or URI. 
 1. Call StartPreview().
 1. The included example app (YascTestApp.sln) demonstrates nearly all the features and can function as a basic streaming/recording app. 

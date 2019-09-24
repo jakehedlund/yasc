@@ -124,9 +124,11 @@ namespace Yasc
         /// </summary>
         public bool SplitRecordedVideo { get; set; } = true;
 
-        // Local camera height/width used by the caps filter to select the correct output. 
+        // Local camera height/width used by the caps filter to select the correct output (unused for now). 
         public int CamHeight { get; set; } = 720;
         public int CamWidth { get; set; } = 1280;
+
+        // Sometimes a bit of buffer is desirable. 
         public int Latency { get; set; } = 0;
 
         public List<OsdObject> OverlayList { get { return _osdObjects; } set { _osdObjects = value; } }
@@ -285,6 +287,7 @@ namespace Yasc
             //ret = pipeline.SetState(State.Ready);
             //sysDbg.WriteLine("SetState ready: " + ret.ToString());
             StateChangeReturn ret;
+
             ret = pipeline.SetState(State.Playing);
             sysDbg.WriteLine("SetState playing: " + ret.ToString());
 
@@ -678,14 +681,27 @@ namespace Yasc
             // Create bins.
             try
             {
-                pipeline = new Pipeline("pipeline0");
-                GstUtilities.CheckError(pipeline);
-                binSource = new Bin("srcbin0");
-                GstUtilities.CheckError(binSource);
-                binRecord = new Bin("recordbin0");
-                GstUtilities.CheckError(binRecord);
-                binDecode = (Bin)ElementFactory.Make("decodebin");
-                GstUtilities.CheckError(binDecode);
+                if (_type == CamType.FileSrc)
+                {
+                    pipeline = (Pipeline)Parse.Launch($"filesrc location={this._fileSrcLoc} name=src0 ! decodebin name=decode0 ! autovideosink name=sink0");
+
+
+                    binDecode = (Bin)pipeline.GetChildByName("decode0");
+
+                    if(binDecode != null)
+                        binDecode.PadAdded += cb_binDecPadAdded;
+                }
+                else
+                {
+                    pipeline = new Pipeline("pipeline0");
+                    GstUtilities.CheckError(pipeline);
+                    binSource = new Bin("srcbin0");
+                    GstUtilities.CheckError(binSource);
+                    binRecord = new Bin("recordbin0");
+                    GstUtilities.CheckError(binRecord);
+                    binDecode = (Bin)ElementFactory.Make("decodebin");
+                    GstUtilities.CheckError(binDecode);
+                }
             }
             catch (Exception ex)
             {
@@ -709,36 +725,41 @@ namespace Yasc
             else
                 throw new YascElementNullException("Bus is null. Failed to setup pipeline."); 
 
-            pipeline.Add(binSource, binDecode); 
-            SetupSourceBin();
-            SetupRecordBinMp4(); 
+            if(binSource != null && binDecode != null)
+                pipeline.Add(binSource, binDecode);
 
-            try
+            if (_type != CamType.FileSrc)
             {
-                // Add in the rendering elements. 
-                pipeline.Add(mTee, mQueueDisp, mDispSink);
+                SetupSourceBin();
+                SetupRecordBinMp4();
 
-                var template = mTee.GetPadTemplate("src_%u");
-                padTeeDisp = mTee.RequestPad(template);
+                try
+                {
+                    // Add in the rendering elements. 
+                    pipeline.Add(mTee, mQueueDisp, mDispSink);
 
-                var ret = padTeeDisp.Link(mQueueDisp.GetStaticPad("sink"));
-                if (ret != PadLinkReturn.Ok)
-                    sysDbg.WriteLine("Error linking tee to queue: " + ret.ToString()); 
+                    var template = mTee.GetPadTemplate("src_%u");
+                    padTeeDisp = mTee.RequestPad(template);
 
-                // We have to link after a pad is created on the decode bin. 
-                binDecode.PadAdded += cb_binDecPadAdded;
+                    var ret = padTeeDisp.Link(mQueueDisp.GetStaticPad("sink"));
+                    if (ret != PadLinkReturn.Ok)
+                        sysDbg.WriteLine("Error linking tee to queue: " + ret.ToString());
 
-                // Link the last pad. 
-                if (!mQueueDisp.Link(mDispSink))
-                    sysDbg.WriteLine("Error linking display queue to display sink."); 
+                    // We have to link after a pad is created on the decode bin. 
+                    binDecode.PadAdded += cb_binDecPadAdded;
 
+                    // Link the last pad. 
+                    if (!mQueueDisp.Link(mDispSink))
+                        sysDbg.WriteLine("Error linking display queue to display sink.");
+
+                }
+                catch (Exception ex)
+                {
+                    sysDbg.WriteLine("Error linking: " + ex.Message);
+                    return false;
+                }
+                //this.DumpPipeline("AfterSetup"); 
             }
-            catch (Exception ex)
-            {
-                sysDbg.WriteLine("Error linking: " + ex.Message);
-                return false; 
-            }
-            //this.DumpPipeline("AfterSetup"); 
             return true;
         }
 
@@ -841,7 +862,8 @@ namespace Yasc
         }
 
         /// <summary>
-        /// Fired after pipeline enters paused state. Try to link to DecodeBin.
+        /// Fired after pipeline enters paused state for rtspsrc, or other sources where the codec/type isn't known until playing. 
+        /// Try to link to DecodeBin.
         /// </summary>
         /// <param name="o"></param>
         /// <param name="args"></param>
@@ -878,10 +900,7 @@ namespace Yasc
         /// <param name="args"></param>
         private void cb_busSyncMessage(object o, SyncMessageArgs args)
         {
-            if (this._type == CamType.FileSrc)
-                return;
 
-            //System.Diagnostics.Debug.WriteLine("bus_SyncMessage: " + args.Message.Type.ToString());
             if (Gst.Video.Global.IsVideoOverlayPrepareWindowHandleMessage(args.Message))
             {
                 Element src = (Gst.Element)args.Message.Src;
@@ -894,8 +913,9 @@ namespace Yasc
                 {
                     //    Try to set Aspect Ratio
                     try
-                    {
+                    { 
                         src["force-aspect-ratio"] = true;
+
                     }
                     catch (PropertyNotFoundException ex) {
                         sysDbg.WriteLine("Error setting aspect ratio: " + ex.Message);

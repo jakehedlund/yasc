@@ -235,11 +235,14 @@ namespace Yasc
                 gstCam.HdlPreviewPanel = (ulong)this.pnlPreview.Handle;
 
                 gstCam.PreviewStarted -= GstCam_PreviewStarted;
-                gstCam.PreviewStopped -= GstCam_PreviewStopped;
                 gstCam.PreviewStarted += GstCam_PreviewStarted;
+
+                gstCam.PreviewStopped -= GstCam_PreviewStopped;
                 gstCam.PreviewStopped += GstCam_PreviewStopped;
+
                 gstCam.ErrorStreaming -= GstCam_ErrorStreaming;
                 gstCam.ErrorStreaming += GstCam_ErrorStreaming;
+
                 gstCam.SnapshotReady -= GstCam_SnapshotReady;
                 gstCam.SnapshotReady += GstCam_SnapshotReady;
 
