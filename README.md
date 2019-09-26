@@ -46,14 +46,14 @@ Initial release supports h.264 and MJPG via RTSP (anything [decodebin](https://g
 As this is a relatively simple wrapper around the great GStreamer, many more features are possible and easily implementable. Behind the scenes, a gst Pipeline is created and manipulated to render the preview source and all the other operations. Therefore, this can be used as an ~~comprehensive~~ advanced C# example program for GStreamer. 
   
 ## Installation
-1. Install GStreamer. 
+1. Install GStreamer (use the MinGW version here: https://gstreamer.freedesktop.org/download/ either 32 or 64 should work, 1.14.0 or higher).
 1. Start a new .NET WinForms project. 
 1. Install GstSharp (gstreamer wrapper for C#) from Nuget.
 1. Copy the yasc dll into your directory of choosing. 
-1. Add Reference to yasc.dll. 
+1. "Add Reference..." to yasc.dll. 
 
 ## Usage 
-1. Add the yasc DLL to your toolbox. 
+1. Add the yasc DLL to your toolbox (right-click -> Choose Items...)
 1. Drag a YascControl onto your form. 
 1. Add buttons and event handlers as necessary.
 1. Set YascControl.CamType to the correct camera type. 
