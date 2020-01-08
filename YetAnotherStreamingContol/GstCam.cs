@@ -124,7 +124,7 @@ namespace Yasc
         /// </summary>
         public bool SplitRecordedVideo { get; set; } = true;
 
-        // Local camera height/width used by the caps filter to select the correct output (unused for now). 
+        // Local camera height/width used by the caps filter to select the correct output.
         public int CamHeight { get; set; } = 720;
         public int CamWidth { get; set; } = 1280;
 
@@ -132,6 +132,8 @@ namespace Yasc
         public int Latency { get; set; } = 0;
 
         public List<OsdObject> OverlayList { get { return _osdObjects; } set { _osdObjects = value; } }
+
+        public string OverlayImagePath { get; set; }
 
         private CamType _type = CamType.Local; 
         public CamType CamType {
@@ -205,11 +207,12 @@ namespace Yasc
 
             set
             {
+                _fileSrcLoc = value;
                 if(srcElt != null)
                 {
                     srcElt["location"] = value;
+                    
                 }
-                _fileSrcLoc = value;
             }
 
         }
@@ -554,7 +557,7 @@ namespace Yasc
             if(padSrcBinSource != null)
             {
                 padSrcBinSource.Unlink(binDecode.GetStaticPad("sink"));
-                padSrcBinSource.Unref();
+                //padSrcBinSource.Unref();
                 padSrcBinSource = null;
             }
 
@@ -683,9 +686,10 @@ namespace Yasc
             {
                 if (_type == CamType.FileSrc)
                 {
-                    pipeline = (Pipeline)Parse.Launch($"filesrc location={this._fileSrcLoc} name=src0 ! decodebin name=decode0 ! autovideosink name=sink0");
+                    // FIXME: files aren't playing properly for some reason. 
+                    pipeline = (Pipeline)Parse.Launch($"filesrc name=src0 ! decodebin name=decode0 ! videoconvert ! autovideosink name=sink0");
 
-
+                    ((Element)pipeline.GetChildByName("src0"))["location"] = this._fileSrcLoc; 
                     binDecode = (Bin)pipeline.GetChildByName("decode0");
 
                     if(binDecode != null)
@@ -765,7 +769,7 @@ namespace Yasc
 
         #region Callbacks
         /// <summary>
-        /// Add all of the overlay elements to the pipeline. 
+        /// Add all of the overlay elements to the pipeline. Assumes the source half is already linked to the Tee element. 
         /// </summary>
         /// <param name="p"></param>
         /// <param name="inf"></param>
@@ -813,13 +817,30 @@ namespace Yasc
                 }
             }
 
+            // TODO: expose height/width/position options for image overlay. 
+            var img = ElementFactory.Make("gdkpixbufoverlay");
+            if(!string.IsNullOrEmpty(this.OverlayImagePath))
+                img["location"] = @"C:\gstreamer\1.0\x86\bin\test.png";
+
+            img["overlay-height"] = 200;
+            pipeline.Add(img);
+            var ret = tPrev.Link(img.GetStaticPad("sink"));
+            if(ret != PadLinkReturn.Ok)
+            {
+                sysDbg.WriteLine("Error linking image overlay."); 
+            }
+
+            img.SyncStateWithParent(); 
+            tPrev = img.GetStaticPad("src");
+
             if(tPrev.Link(tPad) != PadLinkReturn.Ok)
             {
                 sysDbg.WriteLine("Error linking tprev overlay."); 
             }
             padOverlay0 = padOverlay0.Peer; 
-            tPrev.Unref();
-            tPad.Unref(); 
+
+            tPrev?.Unref();
+            tPad?.Unref(); 
             DumpPipeline("After overlay add."); 
             return PadProbeReturn.Remove; 
         }
@@ -834,10 +855,14 @@ namespace Yasc
             sysDbg.WriteLine("Decode bin pad added.");
 
             var newPad = args.NewPad;
+
+            if (newPad.IsLinked)
+                return;
+
             Pad nextPad; 
 
             if (padOverlay0 == null)
-                nextPad = mTee.GetStaticPad("sink");
+                nextPad = mTee?.GetStaticPad("sink");
             else
                 nextPad = padOverlay0; 
 
@@ -871,16 +896,25 @@ namespace Yasc
         {
             var src = (Element)o;
             var newPad = args.NewPad;
-
-            if (padSrcBinSource != null)
+            try
             {
-                padSrcBinSource.Unlink(binDecode.GetStaticPad("sink"));
-                binSource.RemovePad(padSrcBinSource);
-                padSrcBinSource.Unref();
-            }
 
-            padSrcBinSource = new GhostPad("srcPad", newPad);
-            binSource.AddPad(padSrcBinSource);
+                if (padSrcBinSource != null)
+                {
+                    if (!padSrcBinSource.Unlink(binDecode.GetStaticPad("sink")))
+                        sysDbg.WriteLine("Failed to unlink decode bin.");
+                    if (!binSource.RemovePad(padSrcBinSource))
+                        sysDbg.WriteLine("failed to remove existing source pad.");
+                    padSrcBinSource.Unref();
+                }
+
+                padSrcBinSource = new GhostPad("srcPad", newPad);
+                binSource.AddPad(padSrcBinSource);
+            }
+            catch (Exception ex)
+            {
+                sysDbg.WriteLine("Failed adding a pad: " + ex.Message); 
+            }
 
             if (!padSrcBinSource.IsLinked)
             {
@@ -989,7 +1023,7 @@ namespace Yasc
                                 CameraState = CamState.Previewing;
                                 //this.PreviewStarted?.Invoke(this, new EventArgs()); 
                             }
-                            if (msg.Src.Name == binRecord.Name)
+                            if (msg.Src.Name == binRecord?.Name)
                             {
                                 CameraState = CamState.Recording;
                                 //this.RecordingStarted(this, new EventArgs()); 

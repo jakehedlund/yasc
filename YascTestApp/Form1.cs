@@ -187,7 +187,10 @@ namespace YascTestApp
 
         private void btnDump_Click(object sender, EventArgs e)
         {
-            yascControl1.DumpGraph("myDump"); 
+            bool prev = GstUtilities.DumpIntermediateGraphs;
+            GstUtilities.DumpIntermediateGraphs = true;
+            yascControl1.DumpGraph("myDump");
+            GstUtilities.DumpIntermediateGraphs = prev;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -317,6 +320,17 @@ namespace YascTestApp
             yascControl1.CamType = GstEnums.CamType.FileSrc;
 
             yascControl1.FileSoureName = Properties.Settings.Default.LastFileSrcPath; 
+        }
+
+        private void btnGstLaunch_Click(object sender, EventArgs e)
+        {
+            var f = new LaunchLineForm();
+            f.Show(); 
+        }
+
+        private void chkDumpInter_CheckedChanged(object sender, EventArgs e)
+        {
+            GstUtilities.DumpIntermediateGraphs = chkDumpInter.Checked;
         }
     }
 }

@@ -106,6 +106,12 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="LaunchLineForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LaunchLineForm.Designer.cs">
+      <DependentUpon>LaunchLineForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="OsdTextSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -116,6 +122,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LaunchLineForm.resx">
+      <DependentUpon>LaunchLineForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="OsdTextSettings.resx">
       <DependentUpon>OsdTextSettings.cs</DependentUpon>

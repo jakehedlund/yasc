@@ -45,6 +45,23 @@ namespace Yasc
         }
 
         /// <summary>
+        /// Request the specified height from a local cam source using a caps element. 
+        /// </summary>
+        [Browsable(true), DefaultValue(720)]
+        public int CamHeight { get => gstCam.CamHeight; set => gstCam.CamHeight = value; }
+
+        /// <summary>
+        /// Request the specified width from a local cam source using a caps element. 
+        /// </summary>
+        [Browsable(true), DefaultValue(1280)]
+        public int CamWidth { get => gstCam.CamWidth; set => gstCam.CamWidth = value; }
+
+        /// <summary>
+        /// Use a caps filter on the localsrc (ksvideosrc) filter. 
+        /// </summary>
+        public bool UseCapsFilter { get; set; } = false;
+
+        /// <summary>
         ///  Local device index. Only has an effect in CamType.Local or CamType.TestSrc modes. 
         /// </summary>
         public int DeviceIndex { get { return gstCam == null ? 0 : gstCam.DeviceIndex; } set { if (gstCam != null) gstCam.DeviceIndex = value; } }
@@ -195,6 +212,7 @@ namespace Yasc
         public YascControl(Uri connectionUri) : this()
         {
             gstCam.ConnectionUri = connectionUri.ToString();
+            gstCam.CamType = CamType.Rtsp;
         }
 
         /// <summary>
@@ -254,7 +272,8 @@ namespace Yasc
                 }
                 catch(Exception ex)
                 {
-                    sysDbg.WriteLine(ex.Message); 
+                    sysDbg.WriteLine(ex.Message);
+                    GstCam_ErrorStreaming(this, (YascStreamingException)ex); 
                 }
             }
         }

@@ -11,17 +11,24 @@ namespace Yasc
 {
     public class GstUtilities
     {
+        public static bool DumpIntermediateGraphs = false;
+
         public static void DumpGraph(Pipeline pipe, string name, string path = @"C:\gstreamer\dotfiles")
         {
-#if true //YASC_DEBUG
             string dotdata = Gst.Debug.BinToDotData(pipe, DebugGraphDetails.All);
             if (!string.IsNullOrWhiteSpace(dotdata))
             {
                 string full = Path.Combine(path, name + System.DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".dot");
-
-                File.WriteAllText(full, dotdata);
+                try
+                {
+                    if (Directory.Exists(path))
+                        File.WriteAllText(full, dotdata);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Error writing out dotfile. " + ex.Message);
+                }
             }
-#endif
         }
 
         /// <summary>
@@ -136,7 +143,7 @@ namespace Yasc
          */
         public enum TextOverlayScaleMode
         {
-            SCALE_MODE_NONE,
+            SCALE_MODE_NONE, 
             SCALE_MODE_PAR,
             SCALE_MODE_DISPLAY,
             SCALE_MODE_USER

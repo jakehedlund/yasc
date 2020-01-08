@@ -57,7 +57,9 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.btnGstLaunch = new System.Windows.Forms.Button();
             this.yascControl1 = new Yasc.YascControl();
+            this.chkDumpInter = new System.Windows.Forms.CheckBox();
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
@@ -92,7 +94,7 @@
             // 
             this.rbtnLocal.AutoSize = true;
             this.rbtnLocal.Checked = true;
-            this.rbtnLocal.Location = new System.Drawing.Point(6, 19);
+            this.rbtnLocal.Location = new System.Drawing.Point(6, 20);
             this.rbtnLocal.Name = "rbtnLocal";
             this.rbtnLocal.Size = new System.Drawing.Size(57, 17);
             this.rbtnLocal.TabIndex = 4;
@@ -193,6 +195,7 @@
             this.nudLocalIdx.Name = "nudLocalIdx";
             this.nudLocalIdx.Size = new System.Drawing.Size(42, 20);
             this.nudLocalIdx.TabIndex = 6;
+            this.toolTip1.SetToolTip(this.nudLocalIdx, "Local source index (usually 0 for built-in)");
             this.nudLocalIdx.ValueChanged += new System.EventHandler(this.nudIdx_ValueChanged);
             // 
             // rbtnRtsp
@@ -346,6 +349,17 @@
             this.lblStatus.Size = new System.Drawing.Size(31, 17);
             this.lblStatus.Text = "Status";
             // 
+            // btnGstLaunch
+            // 
+            this.btnGstLaunch.Location = new System.Drawing.Point(681, 330);
+            this.btnGstLaunch.Name = "btnGstLaunch";
+            this.btnGstLaunch.Size = new System.Drawing.Size(125, 23);
+            this.btnGstLaunch.TabIndex = 10;
+            this.btnGstLaunch.Text = "Gst Launch Lines";
+            this.btnGstLaunch.UseVisualStyleBackColor = true;
+            this.btnGstLaunch.Visible = false;
+            this.btnGstLaunch.Click += new System.EventHandler(this.btnGstLaunch_Click);
+            // 
             // yascControl1
             // 
             this.yascControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -378,14 +392,28 @@
             this.yascControl1.Preview = false;
             this.yascControl1.Size = new System.Drawing.Size(663, 381);
             this.yascControl1.TabIndex = 3;
+            this.yascControl1.UseCapsFilter = false;
             this.yascControl1.SnapshotReady += new System.EventHandler<System.Drawing.Image>(this.yascControl1_SnapshotReady);
             this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
+            // 
+            // chkDumpInter
+            // 
+            this.chkDumpInter.AutoSize = true;
+            this.chkDumpInter.Location = new System.Drawing.Point(681, 307);
+            this.chkDumpInter.Name = "chkDumpInter";
+            this.chkDumpInter.Size = new System.Drawing.Size(115, 17);
+            this.chkDumpInter.TabIndex = 11;
+            this.chkDumpInter.Text = "Dump Intermediate";
+            this.chkDumpInter.UseVisualStyleBackColor = true;
+            this.chkDumpInter.CheckedChanged += new System.EventHandler(this.chkDumpInter_CheckedChanged);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(818, 520);
+            this.Controls.Add(this.chkDumpInter);
+            this.Controls.Add(this.btnGstLaunch);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.gbxSnapshot);
             this.Controls.Add(this.gbxOverlay);
@@ -442,6 +470,8 @@
         private System.Windows.Forms.Button btnAddOsd;
         private System.Windows.Forms.RadioButton rbtnFileSrc;
         private System.Windows.Forms.Button btnFilesrcBrowse;
+        private System.Windows.Forms.Button btnGstLaunch;
+        private System.Windows.Forms.CheckBox chkDumpInter;
     }
 }
 
