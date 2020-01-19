@@ -240,36 +240,6 @@ namespace Yasc
         }
 
         /// <summary>
-        /// TODO: better path detection/searching. 
-        /// </summary>
-        private void detectGstPath()
-        {
-            // Fallback path. 
-            string pathGst = @"C:\gstreamer\1.0\x86\bin";
-
-            var p = Environment.GetEnvironmentVariable("GSTREAMER_1_0_ROOT_X86");
-            if (!string.IsNullOrEmpty(p))
-                pathGst = System.IO.Path.Combine(p, "bin");
-
-            // Only use x64 if we're built for x64.
-            p = Environment.GetEnvironmentVariable("GSTREAMER_1_0_ROOT_X86_64");
-            if (!string.IsNullOrEmpty(p) && IntPtr.Size == 8)
-            {
-                pathGst = System.IO.Path.Combine(p, "bin");
-                sysDbg.WriteLine("Using the 64-bit version of GStreamer..."); 
-            }
-            
-            if (!System.IO.Directory.Exists(pathGst))
-                throw new YascBaseException($"Couldn't locate a GStreamer installation at {pathGst}. Please check your environment variable GSTREAMER_1_0_ROOT_X86 or _X86_64 and install either the x86 or x86_64 version of GStreamer.");
-
-            var path = Environment.GetEnvironmentVariable("Path");
-
-            // GStreamer uses the Path variable to find itself. 
-            if (!path.StartsWith(pathGst))
-                Environment.SetEnvironmentVariable("Path", pathGst + ";" + path);
-        }
-
-        /// <summary>
         /// Start camera preview. 
         /// </summary>
         public void StartPreview()
@@ -330,15 +300,15 @@ namespace Yasc
                     //PreviewStopped?.Invoke(this, new EventArgs());
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                sysDbg.WriteLine("Error stopping preview."); 
-                throw ex;
+                sysDbg.WriteLine("Error stopping preview.");
+                throw;
             }
         }
 
         /// <summary>
-        /// 
+        /// Stop and close preview window. 
         /// </summary>
         public void StopPreviewClosing()
         {
@@ -346,7 +316,7 @@ namespace Yasc
             {
                 if(CameraState == CamState.Recording)
                 {
-                    StopRecord(); 
+                    StopRecord();
                 }
             }
             catch(Exception ex)
@@ -479,7 +449,7 @@ namespace Yasc
         /// <returns></returns>
         public bool Connect()
         {
-            detectGstPath();
+            GstUtilities.DetectGstPath();
 
             bool r = false;
 
