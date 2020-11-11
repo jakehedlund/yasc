@@ -54,7 +54,7 @@ namespace Yasc
         private Element mQueueDisp, mDispSink, mConvert; 
 
         // "Accessories"
-        private Element mOverlayClock, mCaps, mTee;
+        private Element mOverlayClock, mCaps, mTee, mSvgOverlay;
         private List<OsdObject> _osdObjects;
 
         // Recording elements
@@ -62,6 +62,9 @@ namespace Yasc
 
         private CamState _camState = CamState.Disconnected;
 
+        /// <summary>
+        /// The Windows handle pointer of the panel on which the video is being previewed. 
+        /// </summary>
         public ulong HdlPreviewPanel { get; set; }
 
         public bool IsRecording { get { return this.CameraState == CamState.Recording; } }
@@ -78,7 +81,7 @@ namespace Yasc
         private string _connectionUri = ""; 
 
         /// <summary>
-        /// File name (including path) to which record. 
+        /// File name (including path) to which we will record. 
         /// </summary>
         public string RecFilename
         {
@@ -104,18 +107,19 @@ namespace Yasc
 
         }
         private string _recFname = "";
+
         /// <summary>
-        /// For local cameras only, the index of the device. 
+        /// For local cameras only, the zero-based index of the device. 
         /// </summary>
         public int DeviceIndex { get; set; }
 
         /// <summary>
-        /// Split video using the SplitMuxSink. Not always precise. 
+        /// Split video using the SplitMuxSink. Not always precise. Time in seconds.
         /// </summary>
         public int VideoSplitTimeS { get; set; } = 1800;
 
         /// <summary>
-        /// Split video using the SplitMuxSink. Not always precise. 
+        /// Split video using the SplitMuxSink. Not always precise. Size in MB.
         /// </summary>
         public int VideoSplitSizeMb { get; set; } = 500;
 
@@ -194,7 +198,7 @@ namespace Yasc
 
         /// <summary>
         /// TODO: Implement this - Continue recording on the previous saved video file. 
-        /// (hint: use segments but you have to find wait for the next keyframe to avoid the long frozen frame). 
+        /// (hint: use segments but you have to find a way to wait for the next keyframe to avoid the long frozen frame in the middle). 
         /// </summary>
         public bool StitchVideos { get { return false; } set { throw new NotImplementedException(); } }
 
@@ -216,7 +220,27 @@ namespace Yasc
             }
 
         }
-        private string _fileSrcLoc = ""; 
+        private string _fileSrcLoc = "";
+
+        private string _svgData = "";
+        public string SvgData {
+            get { return _svgData; }
+            set {
+                if (mSvgOverlay != null)
+                {
+                    mSvgOverlay["data"] = value;
+                }
+                _svgData = value;
+            } }
+
+        /// <summary>
+        /// Add the SVG overlay element to the pipeline. Must be set before starting preview. 
+        /// </summary>
+        public bool EnableSvgOverlay { get => _enSvgOverlay; set => _enSvgOverlay = value; }
+        public bool EnableWatermarkImage { get; private set; }
+
+        private bool _enSvgOverlay = false;
+
 
         #region Events
         public event EventHandler PreviewStarted;
@@ -529,7 +553,7 @@ namespace Yasc
         }
 
         /// <summary>
-        /// Setup the source bin. This method can be overridden by inheriting classes for different sources. 
+        /// Setup the source bin. This method can be overridden by sub-classes for different source types.
         /// </summary>
         /// <returns>true on success</returns>
         protected virtual bool SetupSourceBin()
@@ -550,7 +574,7 @@ namespace Yasc
             {
                 binSource.Remove(e);
                 e.Dispose();
-                e.Unref();
+                //e.Unref();
             }
 
             // Unlink from decodeBin.
@@ -654,7 +678,7 @@ namespace Yasc
 
         /// <summary>
         /// Setup the pipeline, including starting the glib and gtk loops. Then, create and link the elements. 
-        /// In hindsight: Doing a ParseLaunch would have been much easier. Then just get the elements needed with pipeline.GetChildByName (or a variant).
+        /// In hindsight: Doing a ParseLaunch would have been much easier. Then just get the elements needed with pipeline.GetChildByName and friends.
         /// //Parse.Launch($"rtspsrc location={this.ConnectionUri} latency={this.Latency} drop-on-latency=true ! decodebin ! textoverlay ! tee name=t0 ! queue ! videoconvert ! autovideosink name=vidsink"); 
         /// Not sure if this would take care of auto linking though - can't link until we start the pipeline and get rtsp data flowing. 
         /// </summary>
@@ -818,29 +842,62 @@ namespace Yasc
             }
 
             // TODO: expose height/width/position options for image overlay. 
-            var img = ElementFactory.Make("gdkpixbufoverlay");
-            if(!string.IsNullOrEmpty(this.OverlayImagePath))
-                img["location"] = @"C:\gstreamer\1.0\x86\bin\test.png";
-
-            img["overlay-height"] = 200;
-            pipeline.Add(img);
-            var ret = tPrev.Link(img.GetStaticPad("sink"));
-            if(ret != PadLinkReturn.Ok)
+            // Static image support. 
+            if(this.EnableWatermarkImage)
             {
-                sysDbg.WriteLine("Error linking image overlay."); 
+                var img = ElementFactory.Make("gdkpixbufoverlay");
+                if(!string.IsNullOrEmpty(this.OverlayImagePath))
+                    img["location"] = @"C:\gstreamer\1.0\x86\bin\test.png";
+
+                img["overlay-height"] = 200;
+                pipeline.Add(img);
+                var ret = tPrev.Link(img.GetStaticPad("sink"));
+                if(ret != PadLinkReturn.Ok)
+                {
+                    sysDbg.WriteLine("Error linking image overlay."); 
+                }
+
+                img.SyncStateWithParent(); 
+                tPrev = img.GetStaticPad("src");
+
             }
 
-            img.SyncStateWithParent(); 
-            tPrev = img.GetStaticPad("src");
+            // Dynamic SVG support.
+            if (this.EnableSvgOverlay)
+            {
+                if(mSvgOverlay == null)
+                    mSvgOverlay = ElementFactory.Make("rsvgoverlay");
 
+                string svgData = this.SvgData;
+                // only add elts if they haven't been already added. 
+                if (mSvgOverlay != null && mSvgOverlay.Parent == null)
+                {
+                    var converter = ElementFactory.Make("videoconvert");
+                    pipeline.Add(converter);
+                    tPrev.Link(converter.GetStaticPad("sink"));
+                    tPrev = converter.GetStaticPad("src");
+
+                    pipeline.Add(mSvgOverlay);
+                    mSvgOverlay["data"] = svgData;
+                    mSvgOverlay["fit-to-frame"] = true;
+                    var ret = tPrev.Link(mSvgOverlay.GetStaticPad("sink"));
+                    if (ret != PadLinkReturn.Ok)
+                        sysDbg.WriteLine("Error linking svg overlay.");
+                    converter.SyncStateWithParent();
+                    mSvgOverlay.SyncStateWithParent();
+                    tPrev = mSvgOverlay.GetStaticPad("src");
+                }
+            }
+
+            /* Final link to Tee element */
             if(tPrev.Link(tPad) != PadLinkReturn.Ok)
             {
                 sysDbg.WriteLine("Error linking tprev overlay."); 
             }
             padOverlay0 = padOverlay0.Peer; 
 
-            tPrev?.Unref();
-            tPad?.Unref(); 
+            //tPrev?.Unref();
+            //tPad?.Unref(); 
             DumpPipeline("After overlay add."); 
             return PadProbeReturn.Remove; 
         }
@@ -1009,16 +1066,20 @@ namespace Yasc
                     msg.ParseStateChanged(out oldState, out newState, out pendingState);
                     if (newState == State.Paused)
                         args.RetVal = false;
-                    sysDbg.WriteLine("\tPipeline state changed from {0} to {1}; Pending: {2}", Element.StateGetName(oldState), Element.StateGetName(newState), Element.StateGetName(pendingState));
+                    sysDbg.WriteLine("\t(from {3}) Pipeline state changed from {0} to {1}; Pending: {2}", Element.StateGetName(oldState), Element.StateGetName(newState), Element.StateGetName(pendingState), args.Message.Src.Name);
                     switch(newState)
                     {
                         case State.VoidPending:
                         case State.Null:
-                            CameraState = CamState.Stopped;
+                            if(msg.Src.Name == binSource.Name)
+                                CameraState = CamState.Stopped;
+                            //if (msg.Src.Name == muxMp4.Name)
+                                //CameraState = CamState.Previewing;
+
                             //this.PreviewStopped?.Invoke(this, new EventArgs());
                             break;
                         case State.Playing:
-                            if (CameraState != CamState.Recording)
+                            if (CameraState != CamState.Recording && msg.Src.Name == binSource?.Name)
                             {
                                 CameraState = CamState.Previewing;
                                 //this.PreviewStarted?.Invoke(this, new EventArgs()); 
@@ -1051,8 +1112,8 @@ namespace Yasc
                     // Remove the recording bin when recording is stopped, but only after EOS is received. 
                     if (structure.HasName("GstBinForwarded"))
                     {
-                        sysDbg.WriteLine("Gst bin forwarded message...");
                         var m = (Gst.Message)structure.GetValue("message").Val;
+                        sysDbg.WriteLine("Gst bin forwarded message..." + m.Type.ToString());
                         if (m.Type == MessageType.Eos)
                         {
                             sysDbg.WriteLine("EOS received from: " + m.Src.Name);
@@ -1147,7 +1208,7 @@ namespace Yasc
         {
             try
             {
-                sysDbg.WriteLine("Linking....");
+                sysDbg.WriteLine("Linking recordbin...");
 
                 if (IsRecording)
                     return PadProbeReturn.Ok;
@@ -1158,16 +1219,20 @@ namespace Yasc
                 if (binRecord == null)
                     SetupRecordBinMp4();
 
+                if(binRecord.Parent == null )
+                    pipeline.Add(binRecord);
+
                 // Recreate the splitmuxsink to restart recording. 
                 if (mSplitMuxSink != null)
                 {
+                    GstUtilities.DumpGraph(pipeline, "before_unlink_splitmux");
                     var encPad = mEncx264.GetStaticPad("src");
                     if (encPad.IsLinked)
                     {
-                        encPad.Unlink(mSplitMuxSink.GetStaticPad("sink"));
+                        if (!encPad.Unlink(encPad.Peer))
+                            sysDbg.WriteLine("Failed to unlink encoder."); 
                         if (!binRecord.Remove(mSplitMuxSink))
                             sysDbg.WriteLine("Remove failed for splitmux.");
-                        //Console.WriteLine("remove failed."); 
 
                         mSplitMuxSink.Dispose();
 
@@ -1204,7 +1269,7 @@ namespace Yasc
 
                 sysDbg.WriteLine("padRec TaskState: " + padTeeRec.TaskState);
 
-                pipeline.Add(binRecord);
+                //pipeline.Add(binRecord);
 
                 var retLink = padTeeRec.Link(padRecBinSink);
 
@@ -1265,11 +1330,11 @@ namespace Yasc
             padTeeRec.Unlink(padRecBinSink);
 
             mTee.ReleaseRequestPad(padTeeRec);
-            padTeeRec.Unref(); 
+            //padTeeRec.Unref(); 
 
             GstUtilities.DumpGraph(this.pipeline, "testsrc_after_unlink.dot");
 
-            this.CameraState = CamState.Previewing;
+            //this.CameraState = CamState.Previewing;
 
             return PadProbeReturn.Remove;
 
@@ -1309,14 +1374,18 @@ namespace Yasc
             mSplitMuxSink = ElementFactory.Make("splitmuxsink", "splitsink0");
             GstUtilities.CheckError(mSplitMuxSink);
 
+            if (mConvert == null)
+                mConvert = ElementFactory.Make("videoconvert", "conv0");
+            GstUtilities.CheckError(mConvert);
+
             mQueueRec = ElementFactory.Make("queue", "qRec");
 
             // Add to bin. 
-            binRecord.Add(mQueueRec, mEncx264, mSplitMuxSink);
+            binRecord.Add(mQueueRec, mConvert, mEncx264, mSplitMuxSink);
 
             padRecBinSink = new GhostPad("sink", mQueueRec.GetStaticPad("sink"));
             binRecord.AddPad(padRecBinSink);
-            //mPipeline.Add(mEncx264, mQueue2, mMux, mFileSink);
+
 
             // Configure elements.
             mEncx264["sliced-threads"] = true; // lower effiency, higher speed.
@@ -1344,7 +1413,7 @@ namespace Yasc
 
 
             // Link elements (inside bin)
-            if (!Element.Link(mQueueRec, mEncx264, mSplitMuxSink))
+            if (!Element.Link(mQueueRec, mConvert, mEncx264, mSplitMuxSink))
                 sysDbg.WriteLine("Error linking recording pipeline.");
 
             // Need to forward messages to propogate the EOS event. I think. 

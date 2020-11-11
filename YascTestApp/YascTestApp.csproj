@@ -8,10 +8,11 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>YascTestApp</RootNamespace>
     <AssemblyName>YascTestApp</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -78,6 +79,9 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Fizzler, Version=1.2.0.0, Culture=neutral, PublicKeyToken=4ebff4844e382110, processorArchitecture=MSIL">
+      <HintPath>..\packages\Fizzler.1.2.0\lib\netstandard1.0\Fizzler.dll</HintPath>
+    </Reference>
     <Reference Include="gio-sharp, Version=3.0.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f, processorArchitecture=MSIL">
       <HintPath>..\packages\GstSharp.1.16.0\lib\net45\gio-sharp.dll</HintPath>
     </Reference>
@@ -87,8 +91,18 @@
     <Reference Include="gstreamer-sharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=5cbf79803e97ff61, processorArchitecture=MSIL">
       <HintPath>..\packages\GstSharp.1.16.0\lib\net45\gstreamer-sharp.dll</HintPath>
     </Reference>
+    <Reference Include="Svg, Version=3.0.0.0, Culture=neutral, PublicKeyToken=12a0bac221edeae2, processorArchitecture=MSIL">
+      <HintPath>..\packages\Svg.3.0.102\lib\net452\Svg.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -105,6 +119,12 @@
     </Compile>
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form2.Designer.cs">
+      <DependentUpon>Form2.cs</DependentUpon>
     </Compile>
     <Compile Include="LaunchLineForm.cs">
       <SubType>Form</SubType>
@@ -137,6 +157,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -153,6 +174,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\SVN\Engineering\Software\Development\DOE.SvgOverlayTest\BitmapToSvgTest\SvgOverlayTest.csproj">
+      <Project>{c111db13-4e93-46d6-9c7d-1b3d2818af02}</Project>
+      <Name>SvgOverlayTest</Name>
+    </ProjectReference>
     <ProjectReference Include="..\YetAnotherStreamingContol\YetAnotherStreamingContol.csproj">
       <Project>{3c7592fd-8039-4b58-8cf7-a8cad00388bb}</Project>
       <Name>YetAnotherStreamingContol</Name>

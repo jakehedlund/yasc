@@ -58,8 +58,9 @@
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.btnGstLaunch = new System.Windows.Forms.Button();
-            this.yascControl1 = new Yasc.YascControl();
             this.chkDumpInter = new System.Windows.Forms.CheckBox();
+            this.btnBounce = new System.Windows.Forms.Button();
+            this.yascControl1 = new Yasc.YascControl();
             this.gbxSrc.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudTestSrc)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudLocalIdx)).BeginInit();
@@ -351,6 +352,7 @@
             // 
             // btnGstLaunch
             // 
+            this.btnGstLaunch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnGstLaunch.Location = new System.Drawing.Point(681, 330);
             this.btnGstLaunch.Name = "btnGstLaunch";
             this.btnGstLaunch.Size = new System.Drawing.Size(125, 23);
@@ -359,6 +361,29 @@
             this.btnGstLaunch.UseVisualStyleBackColor = true;
             this.btnGstLaunch.Visible = false;
             this.btnGstLaunch.Click += new System.EventHandler(this.btnGstLaunch_Click);
+            // 
+            // chkDumpInter
+            // 
+            this.chkDumpInter.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.chkDumpInter.AutoSize = true;
+            this.chkDumpInter.Location = new System.Drawing.Point(681, 307);
+            this.chkDumpInter.Name = "chkDumpInter";
+            this.chkDumpInter.Size = new System.Drawing.Size(115, 17);
+            this.chkDumpInter.TabIndex = 11;
+            this.chkDumpInter.Text = "Dump Intermediate";
+            this.chkDumpInter.UseVisualStyleBackColor = true;
+            this.chkDumpInter.CheckedChanged += new System.EventHandler(this.chkDumpInter_CheckedChanged);
+            // 
+            // btnBounce
+            // 
+            this.btnBounce.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnBounce.Location = new System.Drawing.Point(681, 359);
+            this.btnBounce.Name = "btnBounce";
+            this.btnBounce.Size = new System.Drawing.Size(75, 23);
+            this.btnBounce.TabIndex = 12;
+            this.btnBounce.Text = "Bounce";
+            this.btnBounce.UseVisualStyleBackColor = true;
+            this.btnBounce.Click += new System.EventHandler(this.btnBounce_Click);
             // 
             // yascControl1
             // 
@@ -396,22 +421,12 @@
             this.yascControl1.SnapshotReady += new System.EventHandler<System.Drawing.Image>(this.yascControl1_SnapshotReady);
             this.yascControl1.DoubleClick += new System.EventHandler(this.yascControl1_DoubleClick);
             // 
-            // chkDumpInter
-            // 
-            this.chkDumpInter.AutoSize = true;
-            this.chkDumpInter.Location = new System.Drawing.Point(681, 307);
-            this.chkDumpInter.Name = "chkDumpInter";
-            this.chkDumpInter.Size = new System.Drawing.Size(115, 17);
-            this.chkDumpInter.TabIndex = 11;
-            this.chkDumpInter.Text = "Dump Intermediate";
-            this.chkDumpInter.UseVisualStyleBackColor = true;
-            this.chkDumpInter.CheckedChanged += new System.EventHandler(this.chkDumpInter_CheckedChanged);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(818, 520);
+            this.Controls.Add(this.btnBounce);
             this.Controls.Add(this.chkDumpInter);
             this.Controls.Add(this.btnGstLaunch);
             this.Controls.Add(this.statusStrip1);
@@ -472,6 +487,7 @@
         private System.Windows.Forms.Button btnFilesrcBrowse;
         private System.Windows.Forms.Button btnGstLaunch;
         private System.Windows.Forms.CheckBox chkDumpInter;
+        private System.Windows.Forms.Button btnBounce;
     }
 }
 

@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using sysDbg = System.Diagnostics.Debug;
 using Yasc;
+using Svg;
+using System.IO;
+using BitmapToSvgTest;
 
 namespace YascTestApp
 {
@@ -16,8 +19,14 @@ namespace YascTestApp
     {
 
         Form prevForm;
+        Timer bouncetimer = new Timer() { Interval = 100 };
 
         public bool IsClosing { get; private set; }
+
+        private int ballX = 0, ballY = 0, incX = 5, incY = 5;
+        string svgData = "";
+        SvgDocument svgDoc = null;
+        SvgOsd osd; 
 
         public Form1()
         {
@@ -28,10 +37,36 @@ namespace YascTestApp
             yascControl1.RecordingStarted += YascControl1_RecordingStarted;
             yascControl1.ErrorStreaming += this.YascControl1_ErrorStreaming;
 
+            bouncetimer.Tick += this.Bouncetimer_Tick;
+
+            osd = new SvgOsd(yascControl1.Width, yascControl1.Height);
             //yascControl1.OverlayObjects = new List<OsdObject>();
 
             //yascControl1.OverlayObjects.Add(new OsdObject("Test", "Arial", 13) { HorizontalAlignment = GstEnums.TextOverlayHAlign.HALIGN_LEFT });
             //yascControl1.OverlayObjects.Add(new OsdObject("Test222", "Arial", 13) { HorizontalAlignment = GstEnums.TextOverlayHAlign.HALIGN_RIGHT, VerticalAlignment = GstEnums.TextOverlayVAlign.VALIGN_TOP });
+        }
+
+        private void Bouncetimer_Tick(object sender, EventArgs e)
+        {
+            if ((ballX > yascControl1.CamWidth && incX > 0) || (ballX < 0 && incX < 0))
+                incX *= -1;
+
+            if ((ballY > yascControl1.CamHeight && incY > 0) || (ballY < 0 && incY < 0))
+                incY *= -1;
+
+            ballX += incX;
+            ballY += incY;
+
+            //UpdateSvg(); 
+            // yascControl1.SvgData = this.svgData;
+            osd.UpdateOsd();
+            osd.Pitch = (ballX % 100) - 50;
+            osd.Roll = (ballY % 180) - 90;
+            osd.Heading = ballY % 360;
+            osd.Depth = ballX;
+            osd.Turns = - ballY; 
+
+            yascControl1.SvgData = osd.SvgData; 
         }
 
         private void YascControl1_ErrorStreaming(object sender, YascStreamingException e)
@@ -103,7 +138,7 @@ namespace YascTestApp
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Error setting status: " + ex.Message);
+                sysDbg.WriteLine("Error setting status: " + ex.Message);
             }
         }
 
@@ -252,8 +287,6 @@ namespace YascTestApp
                 prevForm.Controls.Add(prevPanel); 
             }
             prevForm.Show(); 
-
-
         }
 
         private void nudTestSrc_ValueChanged(object sender, EventArgs e)
@@ -294,7 +327,6 @@ namespace YascTestApp
                     sysDbg.WriteLine("Error removing OSD object: " + ex.Message);
                 }
             }
-
         }
 
         private void btnFilesrcBrowse_Click(object sender, EventArgs e)
@@ -331,6 +363,107 @@ namespace YascTestApp
         private void chkDumpInter_CheckedChanged(object sender, EventArgs e)
         {
             GstUtilities.DumpIntermediateGraphs = chkDumpInter.Checked;
+        }
+
+        private void btnBounce_Click(object sender, EventArgs e)
+        {
+            // toggle bounce timer. 
+            bouncetimer.Enabled ^= true;
+
+            if(string.IsNullOrEmpty(this.svgData))
+            {
+                UpdateSvg(); 
+            }
+        }
+
+        /// <summary>
+        /// Create or update SVG ball location. 
+        /// </summary>
+        private void UpdateSvg()
+        {
+            if (svgDoc == null)
+            {
+                svgDoc = new SvgDocument()
+                {
+                    Width = yascControl1.CamWidth,
+                    Height = yascControl1.CamHeight,
+                    ViewBox = new SvgViewBox(0, 0, yascControl1.CamWidth, yascControl1.CamHeight)
+                };
+
+                var group = new SvgGroup();
+
+                svgDoc.Children.Add(group);
+
+                group.Children.Add(new SvgCircle()
+                {
+                    Radius = 10,
+                    Fill = new SvgColourServer(Color.Red),
+                    Stroke = new SvgColourServer(Color.Black),
+                    StrokeWidth = 1,
+                    CenterX = this.ballX,
+                    CenterY = this.ballY,
+                    ID = "bouncyball"
+                });
+                var txtContent = new SvgContentNode() { Content = "TEST SVG" };
+
+                group.Children.Add(new SvgText("SVG TEXT")
+                {
+                    Stroke = new SvgColourServer(Color.Black),
+                    Fill = new SvgColourServer(Color.White),
+                    FontSize = 50,
+                    FontFamily = "Segoe UI, Sans",
+                    ID = "svgtext",
+                    StrokeWidth = 1,
+                    X = { 200 },
+                    Y = { 100 }
+                });
+            }
+
+            var ball = svgDoc.GetElementById<SvgCircle>("bouncyball");
+            ball.CenterX = this.ballX;
+            ball.CenterY = this.ballY; 
+
+            //pbxTest.Image = svgDoc.Draw();
+
+            using (var st = new MemoryStream())
+            {
+                svgDoc.Write(st);
+                svgData = Encoding.UTF8.GetString(st.GetBuffer());
+            }
+
+        }
+
+        private void CreateSvgOsd()
+        {
+            int _width = yascControl1.CamWidth, _height = yascControl1.CamHeight;
+            Pen _whitePen = Pens.White; 
+
+            svgDoc = new SvgDocument()
+            {
+                Width = yascControl1.CamWidth,
+                Height = yascControl1.CamHeight,
+                ViewBox = new SvgViewBox(0, 0, yascControl1.CamWidth, yascControl1.CamHeight)
+            };
+
+            var group = new SvgGroup();
+            svgDoc.Children.Add(group); 
+
+            var headbg = new RectangleF(0, 0, _width, _height * .07f);
+            // Bottom line
+
+            var line = new SvgLine()
+            {
+                StartX = headbg.Left + 5,
+                StartY = headbg.Bottom - headbg.Height / 5,
+                EndX = (SvgUnit)( headbg.Width - 5),
+                EndY = (SvgUnit)( headbg.Bottom - headbg.Height * .2 ),
+            };
+
+            using (var st = new MemoryStream())
+            {
+                svgDoc.Write(st);
+                svgData = Encoding.UTF8.GetString(st.GetBuffer());
+            }
         }
     }
 }

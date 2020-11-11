@@ -57,6 +57,18 @@ namespace Yasc
         public int CamWidth { get => gstCam.CamWidth; set => gstCam.CamWidth = value; }
 
         /// <summary>
+        /// Text string which will be parsed as SVG for the dynamic overlay. Set to empty string to disable.
+        /// </summary>
+        [Browsable(true), DefaultValue("")]
+        public string SvgData { get => gstCam.SvgData; set => gstCam.SvgData = value; }
+
+        /// <summary>
+        /// Enable the graphical dynamic overlay. 
+        /// </summary>
+        [Browsable(true), DefaultValue(false)]
+        public bool EnableSvgOverlay { get => gstCam.EnableSvgOverlay; set => gstCam.EnableSvgOverlay = value; }
+
+        /// <summary>
         /// Use a caps filter on the localsrc (ksvideosrc) filter. 
         /// </summary>
         public bool UseCapsFilter { get; set; } = false;
@@ -273,7 +285,7 @@ namespace Yasc
                 catch(Exception ex)
                 {
                     sysDbg.WriteLine(ex.Message);
-                    GstCam_ErrorStreaming(this, (YascStreamingException)ex); 
+                    //GstCam_ErrorStreaming(this, ex); 
                 }
             }
         }
