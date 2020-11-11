@@ -9,7 +9,7 @@ using Gst;
 
 namespace Yasc
 {
-    public class GstUtilities
+    public static class GstUtilities
     {
         public static bool DumpIntermediateGraphs = false;
 
@@ -29,6 +29,45 @@ namespace Yasc
                     System.Diagnostics.Debug.WriteLine("Error writing out dotfile. " + ex.Message);
                 }
             }
+        }
+
+        /// <summary>
+        /// TODO: better path detection/searching. 
+        /// </summary>
+        public static void DetectGstPath()
+        {
+            // Fallback path. 
+            string pathGst = @"C:\gstreamer\1.0\x86\bin";
+            bool x86found = false, x64found = false; 
+
+            var p = Environment.GetEnvironmentVariable("GSTREAMER_1_0_ROOT_X86");
+            if (!string.IsNullOrEmpty(p))
+            {
+                pathGst = System.IO.Path.Combine(p, "bin");
+                x86found = true;
+            }
+
+            // Only use x64 if we're built for x64.
+            p = Environment.GetEnvironmentVariable("GSTREAMER_1_0_ROOT_X86_64");
+            if (!string.IsNullOrEmpty(p))
+            {
+                x64found = true;
+            }
+
+            if (!string.IsNullOrEmpty(p) && IntPtr.Size == 8 || (x64found && !x86found))
+            {
+                pathGst = System.IO.Path.Combine(p, "bin");
+                System.Diagnostics.Debug.WriteLine("Using the 64-bit version of GStreamer...");
+            }
+
+            if (!System.IO.Directory.Exists(pathGst))
+                throw new YascBaseException($"Couldn't locate a GStreamer installation at {pathGst}. Please check your environment variable GSTREAMER_1_0_ROOT_X86 or _X86_64 and install either the x86 or x86_64 version of GStreamer.");
+
+            var path = Environment.GetEnvironmentVariable("Path");
+
+            // GStreamer uses the Path variable to find itself. 
+            if (!path.StartsWith(pathGst))
+                Environment.SetEnvironmentVariable("Path", pathGst + ";" + path);
         }
 
         /// <summary>
@@ -84,7 +123,7 @@ namespace Yasc
         }
     }
 
-    public class GstEnums
+    public static class GstEnums
     {
 
         public enum TextOverlayVAlign
@@ -176,13 +215,28 @@ namespace Yasc
 
         }
 
-        public YascElementNullException(Element element) : this(string.Format("Element {0} is null! ", element.Name)) { }
+        public YascElementNullException(Element element) : this(string.Format("Element {0} is null! ", nameof( element))) { }
 
+        public YascElementNullException() : base()
+        {
+        }
+
+        public YascElementNullException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 
     public class YascBaseException : Exception
     {
         public YascBaseException(string msg) : base(msg) { }
+
+        public YascBaseException() : base()
+        {
+        }
+
+        public YascBaseException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 
     public class YascStreamingException : YascBaseException
@@ -190,5 +244,13 @@ namespace Yasc
         public YascStreamingException(StateChangeReturn state) : base(string.Format("State change error: {0} ", state.ToString())) { }
 
         public YascStreamingException(string msg) : base(msg) { }
+
+        public YascStreamingException() : base()
+        {
+        }
+
+        public YascStreamingException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
