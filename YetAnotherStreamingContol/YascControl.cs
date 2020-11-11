@@ -285,7 +285,7 @@ namespace Yasc
                 catch(Exception ex)
                 {
                     sysDbg.WriteLine(ex.Message);
-                    //GstCam_ErrorStreaming(this, ex); 
+                    GstCam_ErrorStreaming(this, new YascStreamingException("Error starting preview.", ex));
                 }
             }
         }
