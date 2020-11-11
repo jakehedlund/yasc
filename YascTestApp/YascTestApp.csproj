@@ -112,6 +112,10 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="YetAnotherStreamingContol, Version=1.0.1.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\YetAnotherStreamingContol\bin\x64\Debug\YetAnotherStreamingContol.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Form1.cs">
@@ -177,10 +181,6 @@
     <ProjectReference Include="..\..\..\..\..\SVN\Engineering\Software\Development\DOE.SvgOverlayTest\BitmapToSvgTest\SvgOverlayTest.csproj">
       <Project>{c111db13-4e93-46d6-9c7d-1b3d2818af02}</Project>
       <Name>SvgOverlayTest</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\YetAnotherStreamingContol\YetAnotherStreamingContol.csproj">
-      <Project>{3c7592fd-8039-4b58-8cf7-a8cad00388bb}</Project>
-      <Name>YetAnotherStreamingContol</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
