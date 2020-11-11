@@ -82,7 +82,15 @@ I could not for the life of me find a low-latency, self-contained, low-cost plug
 
 Not being able to find something that met all these criteria (yes I tried ffmpeg and VLC libs - latency and flexibility were the main sticking points), I finally bit the bullet and learned GStreamer. After I learned enough to implement the desired functionality, I wrote the control which became yasc.
 
+<<<<<<< HEAD
 Furthermore, I found the existing landscape around video previewing and rendering to be quite confusing and not at all well documented for newcomers like me. DirectShow is cumbersome (and not supported anymore, depending who you ask), ffmpeg is...interesting..., libvlc is slow and inflexible.... The primary goal of this project is to lower the barrier of entry for creative programmers looking for a simple streaming solution.
+=======
+<<<<<<< HEAD
+Furthermore, I found the existing landscape around video previewing and rendering to be quite confusing and not at all well documented for newcomers like me. DirectShow is cumbersome (and not supported anymore, depending who you ask), ffmpeg is...interesting..., libvlc is slow and inflexible.... The primary goal of this project is to lower the barrier of entry for creative programmers looking for a simple streaming solution.
+=======
+Furthermore, I found the existing landscape around video previewing and rendering to be quite confusing and not at all well documented for newcomers like me. DirectShow is cumbersome (and not supported anymore, depending who you ask), ffmpeg is...interesting..., libvlc is slow and inflexible.... The primary goal of this project is to make the hard easy and complex simple to lower the barrier of entry for creative programmers looking for a simple streaming solution.
+>>>>>>> 2c2b496104a1ae1b5c1b3187c3f655ed2f7c2c9e
+>>>>>>> ac991d22eebf8fc4a54a0286fb0e39ce56b94dc0
 
 Windows 10 and WPF seems to be making moves in this domain, but most options I found didn't meet one or more of my critera above. In addition they were mostly black boxes without much room for extensibility. Hence, yet another streaming control enters the arena.
 
